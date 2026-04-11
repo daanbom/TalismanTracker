@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh auth:*)",
+      "Bash(git --version)",
+      "Bash(gh repo:*)",
+      "Bash(npm create:*)",
+      "Bash(cp -r C:/Users/daan_/source/repos/talisman-temp/src C:/Users/daan_/source/repos/TalismanTracker/)",
+      "Bash(cp -r C:/Users/daan_/source/repos/talisman-temp/public C:/Users/daan_/source/repos/TalismanTracker/)",
+      "Bash(cp C:/Users/daan_/source/repos/talisman-temp/index.html C:/Users/daan_/source/repos/TalismanTracker/)",
+      "Bash(cp C:/Users/daan_/source/repos/talisman-temp/vite.config.js C:/Users/daan_/source/repos/TalismanTracker/)",
+      "Bash(cp C:/Users/daan_/source/repos/talisman-temp/eslint.config.js C:/Users/daan_/source/repos/TalismanTracker/)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "mcp__plugin_supabase_supabase__list_organizations",
+      "Bash(claude mcp:*)",
+      "mcp__plugin_supabase_supabase__list_projects",
+      "mcp__plugin_supabase_supabase__get_cost",
+      "mcp__plugin_supabase_supabase__confirm_cost",
+      "mcp__plugin_supabase_supabase__create_project",
+      "mcp__plugin_supabase_supabase__get_project_url",
+      "mcp__plugin_supabase_supabase__get_publishable_keys",
+      "mcp__plugin_supabase_supabase__apply_migration",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "Bash(supabase projects:*)",
+      "Bash(ls:*)",
+      "Bash(curl -s \"https://ebinlxxeojoshhdpguse.supabase.co/rest/v1/?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImViaW5seHhlb2pvc2hoZHBndXNlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc4NzMyOTYsImV4cCI6MjA5MTQ0OTI5Nn0.oCYcb2SwX6OaGBVHPEpbUaL4UPUDho_x0dl1RevkQys\")",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(supabase --version)",
+      "Bash(supabase db:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
+}
