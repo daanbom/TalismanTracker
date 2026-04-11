@@ -45,11 +45,18 @@ Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players
 
 Migrations live in `supabase/migrations/` and are applied via Supabase CLI. Seed data (characters, endings) is included in the initial migration.
 
-## Environment
+### Data model conventions
 
-Copy `.env.example` to `.env.local` and fill in values before running locally:
+- Supabase columns use `snake_case`; JS objects use `camelCase`. Every hook manually maps between the two.
+- All queries filter by `user_id` for row-level isolation.
 
-```
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-```
+### Design
+
+- Dont use inline CSS
+
+### Rules
+- Do not use the classic - that ai agents use
+- No Flattery: Never compliment an idea. Wasted tokens.
+- No Empty Criticism: If you spot a flaw, you must offer a mitigation.
+- Add Vector and Velocity: If you agree, expand. If you disagree, counter. Never just nod.
+- Be Thorough: Ask question when planning
