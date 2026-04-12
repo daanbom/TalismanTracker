@@ -1,14 +1,34 @@
 import { useState } from 'react'
-import { MOCK_PLAYERS, MOCK_LEADERBOARD } from '../lib/mockData'
+import { usePlayers } from '../hooks/usePlayers'
+import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
+import { useAddPlayer } from '../hooks/useAddPlayer'
 
 export default function Players() {
   const [showModal, setShowModal] = useState(false)
   const [newName, setNewName] = useState('')
 
-  const playersWithStats = MOCK_PLAYERS.map(p => {
-    const stats = MOCK_LEADERBOARD.find(s => s.id === p.id)
-    return { ...p, ...stats }
+  const playersQuery = usePlayers()
+  const statsQuery = useLeaderboardStats()
+  const addPlayer = useAddPlayer()
+
+  const players = playersQuery.data ?? []
+  const stats = statsQuery.data ?? []
+
+  const playersWithStats = players.map(p => {
+    const s = stats.find(row => row.id === p.id)
+    return { ...p, ...s }
   })
+
+  const error = playersQuery.error || statsQuery.error || addPlayer.error
+
+  const handleAdd = () => {
+    addPlayer.mutate(newName, {
+      onSuccess: () => {
+        setShowModal(false)
+        setNewName('')
+      },
+    })
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -22,40 +42,48 @@ export default function Players() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">{MOCK_PLAYERS.length} adventurers registered</p>
+        <p className="text-muted text-sm font-body mt-3">{players.length} adventurers registered</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {playersWithStats.map((player, i) => (
-          <div
-            key={player.id}
-            className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-5 animate-fade-up delay-${i + 1}`}
-          >
-            <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">{player.name}</h3>
-            <div className="grid grid-cols-2 gap-y-2 text-sm font-body">
-              <div>
-                <span className="text-muted text-xs">Games</span>
-                <p className="text-parchment/80">{player.games_played ?? 0}</p>
+      {error && (
+        <p className="text-danger text-sm font-body mb-4">{error.message}</p>
+      )}
+
+      {players.length === 0 && !playersQuery.isLoading ? (
+        <p className="text-muted text-sm font-body italic">No players yet. Add the first adventurer.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {playersWithStats.map((player, i) => (
+            <div
+              key={player.id}
+              className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-5 animate-fade-up delay-${i + 1}`}
+            >
+              <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">{player.name}</h3>
+              <div className="grid grid-cols-2 gap-y-2 text-sm font-body">
+                <div>
+                  <span className="text-muted text-xs">Games</span>
+                  <p className="text-parchment/80">{player.games_played ?? 0}</p>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Wins</span>
+                  <p className="text-gold/80">{player.wins ?? 0}</p>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Win Rate</span>
+                  <p className="text-parchment/80">{player.win_rate != null ? `${player.win_rate.toFixed(1)}%` : 'N/A'}</p>
+                </div>
+                <div>
+                  <span className="text-muted text-xs">Deaths</span>
+                  <p className="text-parchment/80">{player.total_deaths ?? 0}</p>
+                </div>
               </div>
-              <div>
-                <span className="text-muted text-xs">Wins</span>
-                <p className="text-gold/80">{player.wins ?? 0}</p>
-              </div>
-              <div>
-                <span className="text-muted text-xs">Win Rate</span>
-                <p className="text-parchment/80">{player.win_rate ? `${player.win_rate.toFixed(1)}%` : '—'}</p>
-              </div>
-              <div>
-                <span className="text-muted text-xs">Deaths</span>
-                <p className="text-parchment/80">{player.total_deaths ?? 0}</p>
+              <div className="mt-3 pt-3 border-t border-gold-dim/10 text-xs font-body text-muted">
+                Joined {new Date(player.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-gold-dim/10 text-xs font-body text-muted">
-              Joined {new Date(player.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Add Player Modal */}
       {showModal && (
@@ -70,22 +98,26 @@ export default function Players() {
                 placeholder="Enter name..."
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && newName.trim()) handleAdd() }}
                 autoFocus
               />
+              {addPlayer.error && (
+                <p className="text-danger text-xs font-body mt-2">{addPlayer.error.message}</p>
+              )}
             </div>
             <div className="flex gap-3 justify-end">
               <button
-                onClick={() => { setShowModal(false); setNewName('') }}
+                onClick={() => { setShowModal(false); setNewName(''); addPlayer.reset() }}
                 className="btn-outline text-sm"
               >
                 Cancel
               </button>
               <button
-                onClick={() => { setShowModal(false); setNewName('') }}
+                onClick={handleAdd}
                 className="btn-gold text-sm"
-                disabled={!newName.trim()}
+                disabled={!newName.trim() || addPlayer.isPending}
               >
-                Add Player
+                {addPlayer.isPending ? 'Adding...' : 'Add Player'}
               </button>
             </div>
           </div>

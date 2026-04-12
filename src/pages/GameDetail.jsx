@@ -1,5 +1,6 @@
-import { useParams, Link } from 'react-router-dom'
-import { MOCK_GAMES } from '../lib/mockData'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useGame } from '../hooks/useGame'
+import { useDeleteGame } from '../hooks/useDeleteGame'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -17,15 +18,47 @@ const CATEGORY_LABELS = {
   most_denizens_on_spot: 'Most Denizens on Spot',
 }
 
-const EVENT_LABELS = {
-  path_completed: 'Path Completed',
-  dungeon_beaten: 'Dungeon Beaten',
+function groupEventsByPlayer(events) {
+  const groups = new Map()
+  for (const event of events) {
+    const key = event.player?.id ?? '__unassigned__'
+    if (!groups.has(key)) {
+      groups.set(key, { player: event.player, woodlandPaths: [], dungeonBeaten: false })
+    }
+    const group = groups.get(key)
+    if (event.expansion === 'woodland' && event.detail) {
+      group.woodlandPaths.push(event.detail)
+    }
+    if (event.event_type === 'dungeon_beaten') {
+      group.dungeonBeaten = true
+    }
+  }
+  return Array.from(groups.values())
 }
 
 export default function GameDetail() {
   const { id } = useParams()
-  const game = MOCK_GAMES.find(g => g.id === id) || MOCK_GAMES[0]
-  const winner = game.players.find(p => p.is_winner)
+  const navigate = useNavigate()
+  const { data: game, error } = useGame(id)
+  const deleteGame = useDeleteGame()
+
+  const handleDelete = () => {
+    if (!confirm('Delete this game? This cannot be undone.')) return
+    deleteGame.mutate(id, {
+      onSuccess: () => navigate('/history'),
+    })
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <p className="text-danger text-sm font-body">{error.message}</p>
+      </div>
+    )
+  }
+  if (!game) return null
+
+  const winners = game.players.filter(p => p.is_winner)
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -38,13 +71,21 @@ export default function GameDetail() {
             </Link>
             <h1 className="font-heading text-3xl text-parchment tracking-wide">Game Detail</h1>
           </div>
-          <Link to={`/games/${game.id}/edit`} className="btn-outline text-sm mt-6">
-            Edit Game
-          </Link>
+          <div className="flex gap-2 mt-6">
+            <Link to={`/games/${game.id}/edit`} className="btn-outline text-sm">
+              Edit Game
+            </Link>
+            <button onClick={handleDelete} disabled={deleteGame.isPending} className="btn-danger text-sm">
+              {deleteGame.isPending ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
         </div>
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
+        {deleteGame.error && (
+          <p className="text-danger text-sm font-body mt-3">{deleteGame.error.message}</p>
+        )}
       </div>
 
       {/* Game info card */}
@@ -56,14 +97,26 @@ export default function GameDetail() {
           </div>
           <div>
             <span className="text-muted text-xs font-body uppercase tracking-wider">Ending</span>
-            <p className="text-parchment font-heading tracking-wide mt-1">{game.ending.name}</p>
+            <p className="text-parchment font-heading tracking-wide mt-1">{game.ending?.name}</p>
           </div>
           <div>
-            <span className="text-muted text-xs font-body uppercase tracking-wider">Winner</span>
-            <p className="text-gold font-heading tracking-wide mt-1">
-              {winner?.player.name}
-              <span className="text-gold/50 font-body text-sm ml-1">as {winner?.winning_character}</span>
-            </p>
+            <span className="text-muted text-xs font-body uppercase tracking-wider">
+              {winners.length > 1 ? 'Winners' : 'Winner'}
+            </span>
+            {winners.length === 0 ? (
+              <p className="text-gold font-heading tracking-wide mt-1">Talisman</p>
+            ) : (
+              <div className="mt-1 space-y-0.5">
+                {winners.map(w => (
+                  <p key={w.player.id} className="text-gold font-heading tracking-wide">
+                    {w.player.name}
+                    {w.winning_character && (
+                      <span className="text-gold/50 font-body text-sm ml-1">as {w.winning_character}</span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         {game.notes && (
@@ -127,12 +180,12 @@ export default function GameDetail() {
           <h2 className="font-heading text-xl text-gold tracking-wide mb-4">Game Highscores</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {game.highscores.map(hs => (
-              <div key={hs.category} className="bg-surface border border-gold-dim/15 rounded-xl p-4 flex items-center justify-between">
+              <div key={hs.id ?? hs.category} className="bg-surface border border-gold-dim/15 rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-heading text-parchment/80 tracking-wide">
                     {CATEGORY_LABELS[hs.category] || hs.category}
                   </p>
-                  <p className="text-gold/70 text-sm font-body mt-0.5">{hs.player.name}</p>
+                  <p className="text-gold/70 text-sm font-body mt-0.5">{hs.player?.name}</p>
                 </div>
                 <span className="text-gold font-display text-2xl">{hs.value}</span>
               </div>
@@ -146,17 +199,33 @@ export default function GameDetail() {
         <div className="animate-fade-up delay-4">
           <h2 className="font-heading text-xl text-gold tracking-wide mb-4">Expansion Events</h2>
           <div className="space-y-3">
-            {game.expansion_events.map((event, idx) => (
-              <div key={idx} className="bg-surface border border-gold-dim/15 rounded-xl p-4 flex items-center gap-4">
-                <span className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-teal-light text-xs font-heading tracking-wider uppercase">
-                  {event.expansion}
-                </span>
-                <div>
-                  <p className="text-sm font-body text-parchment/80">
-                    {EVENT_LABELS[event.event_type] || event.event_type}
-                  </p>
-                  {event.detail && (
-                    <p className="text-muted text-xs font-body mt-0.5">{event.detail}</p>
+            {groupEventsByPlayer(game.expansion_events).map((group, idx) => (
+              <div key={group.player?.id ?? idx} className="bg-surface border border-gold-dim/15 rounded-xl p-4">
+                <h3 className="font-heading text-sm text-parchment tracking-wide mb-3">
+                  {group.player?.name ?? 'Unassigned'}
+                </h3>
+                <div className="space-y-2">
+                  {group.woodlandPaths.length > 0 && (
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-teal-light text-xs font-heading tracking-wider uppercase">
+                        Woodland
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {group.woodlandPaths.map((path, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded-full text-xs font-body border border-gold-dim/20 text-parchment/70">
+                            {path}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {group.dungeonBeaten && (
+                    <div className="flex items-center gap-3">
+                      <span className="px-2.5 py-1 bg-teal/10 border border-teal/20 rounded-lg text-teal-light text-xs font-heading tracking-wider uppercase">
+                        Dungeon
+                      </span>
+                      <span className="text-sm font-body text-parchment/80">Dungeon Beaten</span>
+                    </div>
                   )}
                 </div>
               </div>

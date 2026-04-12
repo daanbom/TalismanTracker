@@ -1,14 +1,23 @@
 import { useParams } from 'react-router-dom'
-import { MOCK_GAMES, MOCK_ENDINGS } from '../lib/mockData'
+import { useGame } from '../hooks/useGame'
 import LogGame from './LogGame'
 
 export default function EditGame() {
   const { id } = useParams()
-  const game = MOCK_GAMES.find(g => g.id === id) || MOCK_GAMES[0]
+  const { data: game, error, isLoading } = useGame(id)
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <p className="text-danger text-sm font-body">{error.message}</p>
+      </div>
+    )
+  }
+  if (isLoading || !game) return null
 
   const initialData = {
     date: game.date,
-    ending_id: game.ending.id,
+    ending_id: game.ending?.id ?? '',
     notes: game.notes || '',
     players: game.players.map(p => p.player.id),
     playerData: game.players.reduce((acc, p) => {
@@ -24,18 +33,24 @@ export default function EditGame() {
       acc[h.category] = { player_id: h.player.id, value: h.value }
       return acc
     }, {}),
-    expansionEvents: {
-      woodland: {
-        paths_completed: game.expansion_events
-          .filter(e => e.expansion === 'woodland')
-          .map(e => e.detail),
-      },
-      dungeon: {
-        beaten: game.expansion_events.some(e => e.event_type === 'dungeon_beaten'),
-        detail: game.expansion_events.find(e => e.event_type === 'dungeon_beaten')?.detail || '',
-      },
-    },
+    expansionEvents: game.players.reduce((acc, gp) => {
+      const pid = gp.player.id
+      acc[pid] = {
+        woodland: {
+          paths_completed: game.expansion_events
+            .filter(e => e.player?.id === pid && e.expansion === 'woodland')
+            .map(e => e.detail)
+            .filter(Boolean),
+        },
+        dungeon: {
+          beaten: game.expansion_events.some(
+            e => e.player?.id === pid && e.event_type === 'dungeon_beaten',
+          ),
+        },
+      }
+      return acc
+    }, {}),
   }
 
-  return <LogGame initialData={initialData} isEditing />
+  return <LogGame initialData={initialData} isEditing gameId={id} />
 }

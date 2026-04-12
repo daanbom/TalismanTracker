@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import heroImg from '../assets/hero.png'
+import { useGames } from '../hooks/useGames'
+import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
 
 const QUICK_LINKS = [
   {
@@ -52,6 +54,10 @@ const QUICK_LINKS = [
 ]
 
 export default function Home() {
+  const { data: games = [] } = useGames()
+  const { data: stats = [] } = useLeaderboardStats()
+  const gameCount = games.length
+  const championCount = stats.filter(s => s.wins > 0).length
   return (
     <div>
       {/* Hero Section */}
@@ -121,7 +127,7 @@ export default function Home() {
             The Realm Awaits
           </h2>
           <p className="text-muted font-body max-w-md mx-auto mb-8">
-            5 games logged. 5 champions crowned. Who will be next to
+            {gameCount} game{gameCount !== 1 ? 's' : ''} logged. {championCount} champion{championCount !== 1 ? 's' : ''} crowned. Who will be next to
             claim the Crown of Command?
           </p>
           <div className="flex items-center justify-center gap-4">

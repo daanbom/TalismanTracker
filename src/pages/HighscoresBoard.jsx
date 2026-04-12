@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { MOCK_HIGHSCORE_RECORDS } from '../lib/mockData'
+import { useHighscoreRecords } from '../hooks/useHighscoreRecords'
 
 const CATEGORY_ICONS = {
   most_coins: (
@@ -32,6 +32,7 @@ const CATEGORY_ICONS = {
 }
 
 export default function HighscoresBoard() {
+  const { data: records = [], error } = useHighscoreRecords()
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 animate-fade-up">
@@ -42,30 +43,39 @@ export default function HighscoresBoard() {
         <p className="text-muted text-sm font-body mt-3">All-time per-game records across all sessions.</p>
       </div>
 
+      {error && (
+        <p className="text-danger text-sm font-body mb-4">{error.message}</p>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {MOCK_HIGHSCORE_RECORDS.map((record, i) => (
-          <div
-            key={record.category}
-            className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 animate-fade-up delay-${i + 2}`}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className="text-gold/50">{CATEGORY_ICONS[record.category]}</div>
-              <span className="text-gold font-display text-3xl tracking-wider leading-none">
-                {record.value}
-              </span>
+        {records.map((record, i) => {
+          const empty = record.value == null
+          return (
+            <div
+              key={record.category}
+              className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 animate-fade-up delay-${i + 2}`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="text-gold/50">{CATEGORY_ICONS[record.category]}</div>
+                <span className="text-gold font-display text-3xl tracking-wider leading-none">
+                  {empty ? '—' : record.value}
+                </span>
+              </div>
+              <h3 className="font-heading text-parchment text-lg tracking-wide mb-2">{record.label}</h3>
+              <div className="flex items-center justify-between text-sm font-body">
+                <span className="text-gold/80">{record.player ?? 'No record yet'}</span>
+                {!empty && (
+                  <Link
+                    to={`/games/${record.game_id}`}
+                    className="text-muted hover:text-teal-light transition-colors"
+                  >
+                    {new Date(record.game_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Link>
+                )}
+              </div>
             </div>
-            <h3 className="font-heading text-parchment text-lg tracking-wide mb-2">{record.label}</h3>
-            <div className="flex items-center justify-between text-sm font-body">
-              <span className="text-gold/80">{record.player}</span>
-              <Link
-                to={`/games/${record.game_id}`}
-                className="text-muted hover:text-teal-light transition-colors"
-              >
-                {new Date(record.game_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </Link>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Empty state hint */}
