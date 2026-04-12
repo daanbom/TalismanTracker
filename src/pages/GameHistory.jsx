@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { MOCK_GAMES } from '../lib/mockData'
+import { useGames } from '../hooks/useGames'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -11,6 +11,8 @@ function formatDate(dateStr) {
 }
 
 export default function GameHistory() {
+  const { data: games = [], error } = useGames()
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 animate-fade-up">
@@ -23,12 +25,19 @@ export default function GameHistory() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">{MOCK_GAMES.length} games chronicled</p>
+        <p className="text-muted text-sm font-body mt-3">{games.length} games chronicled</p>
       </div>
 
+      {error && (
+        <p className="text-danger text-sm font-body mb-4">{error.message}</p>
+      )}
+
+      {games.length === 0 ? (
+        <p className="text-muted text-sm font-body italic">No games logged yet.</p>
+      ) : (
       <div className="space-y-4">
-        {MOCK_GAMES.map((game, i) => {
-          const winner = game.players.find(p => p.is_winner)
+        {games.map((game, i) => {
+          const winners = game.players.filter(p => p.is_winner)
           return (
             <Link
               key={game.id}
@@ -70,13 +79,18 @@ export default function GameHistory() {
               {/* Bottom row */}
               <div className="flex items-center gap-4 text-xs font-body text-muted">
                 <span>{game.players.length} players</span>
-                {winner && (
-                  <>
-                    <span className="text-gold-dim/30">&#183;</span>
-                    <span>
-                      Winner: <span className="text-gold/70">{winner.player.name}</span> as {winner.winning_character}
+                <span className="text-gold-dim/30">&#183;</span>
+                {winners.length === 0 ? (
+                  <span>
+                    Winner: <span className="text-gold/70">Talisman</span>
+                  </span>
+                ) : (
+                  <span>
+                    Winner{winners.length > 1 ? 's' : ''}:{' '}
+                    <span className="text-gold/70">
+                      {winners.map(w => w.player.name).join(', ')}
                     </span>
-                  </>
+                  </span>
                 )}
                 {game.expansion_events.length > 0 && (
                   <>
@@ -93,6 +107,7 @@ export default function GameHistory() {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

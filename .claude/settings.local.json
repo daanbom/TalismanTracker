@@ -29,7 +29,10 @@
       "Bash(node:*)",
       "Bash(supabase --version)",
       "Bash(supabase db:*)",
-      "Bash(gh project:*)"
+      "Bash(gh project:*)",
+      "Bash(gh issue:*)",
+      "Bash(npx supabase:*)",
+      "Bash(rm:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

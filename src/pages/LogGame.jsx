@@ -1,5 +1,27 @@
 import { useState } from 'react'
-import { MOCK_PLAYERS, MOCK_CHARACTERS, MOCK_ENDINGS, HIGHSCORE_CATEGORIES, WOODLAND_PATHS } from '../lib/mockData'
+import { useNavigate } from 'react-router-dom'
+import { usePlayers } from '../hooks/usePlayers'
+import { useCharacters } from '../hooks/useCharacters'
+import { useEndings } from '../hooks/useEndings'
+import { useAddPlayer } from '../hooks/useAddPlayer'
+import { useLogGame } from '../hooks/useLogGame'
+import { useUpdateGame } from '../hooks/useUpdateGame'
+import { useDeleteGame } from '../hooks/useDeleteGame'
+
+const HIGHSCORE_CATEGORIES = [
+  { key: 'most_coins', label: 'Most Coins' },
+  { key: 'most_followers', label: 'Most Followers' },
+  { key: 'most_objects', label: 'Most Objects' },
+  { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot' },
+]
+
+const WOODLAND_PATHS = [
+  'Way of Light',
+  'Path of Destiny',
+  'Sylvan Path',
+  'Ancient Way',
+  'Dark Path',
+]
 
 const INITIAL_STATE = {
   date: new Date().toISOString().split('T')[0],
@@ -8,11 +30,13 @@ const INITIAL_STATE = {
   players: [],
   playerData: {},
   highscores: {},
-  expansionEvents: {
-    woodland: { paths_completed: [] },
-    dungeon: { beaten: false, detail: '' },
-  },
+  expansionEvents: {},
 }
+
+const emptyPlayerEvents = () => ({
+  woodland: { paths_completed: [] },
+  dungeon: { beaten: false },
+})
 
 function SectionHeader({ title, subtitle }) {
   return (
@@ -23,10 +47,19 @@ function SectionHeader({ title, subtitle }) {
   )
 }
 
-export default function LogGame({ initialData, isEditing }) {
+export default function LogGame({ initialData, isEditing, gameId }) {
+  const navigate = useNavigate()
   const [form, setForm] = useState(initialData || INITIAL_STATE)
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState('')
+
+  const { data: allPlayers = [] } = usePlayers()
+  const { data: allCharacters = [] } = useCharacters()
+  const { data: allEndings = [] } = useEndings()
+  const addPlayer = useAddPlayer()
+  const logGame = useLogGame()
+  const updateGame = useUpdateGame()
+  const deleteGame = useDeleteGame()
 
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 
@@ -37,12 +70,15 @@ export default function LogGame({ initialData, isEditing }) {
         ? prev.players.filter(id => id !== playerId)
         : prev.players.length < 5 ? [...prev.players, playerId] : prev.players
       const playerData = { ...prev.playerData }
+      const expansionEvents = { ...prev.expansionEvents }
       if (!exists) {
         playerData[playerId] = { characters_played: [], total_deaths: 0, is_winner: false, winning_character: null }
+        expansionEvents[playerId] = emptyPlayerEvents()
       } else {
         delete playerData[playerId]
+        delete expansionEvents[playerId]
       }
-      return { ...prev, players, playerData }
+      return { ...prev, players, playerData, expansionEvents }
     })
   }
 
@@ -56,19 +92,25 @@ export default function LogGame({ initialData, isEditing }) {
     }))
   }
 
-  const setWinner = (playerId) => {
+  const toggleWinner = (playerId) => {
     setForm(prev => {
-      const playerData = { ...prev.playerData }
-      for (const id of prev.players) {
-        playerData[id] = { ...playerData[id], is_winner: id === playerId }
-        if (id === playerId) {
-          const chars = playerData[id].characters_played
-          playerData[id].winning_character = chars.length > 0 ? chars[chars.length - 1] : null
-        } else {
-          playerData[id].winning_character = null
-        }
+      const current = prev.playerData[playerId]
+      if (!current) return prev
+      const nextIsWinner = !current.is_winner
+      const chars = current.characters_played
+      return {
+        ...prev,
+        playerData: {
+          ...prev.playerData,
+          [playerId]: {
+            ...current,
+            is_winner: nextIsWinner,
+            winning_character: nextIsWinner
+              ? (current.winning_character || (chars.length > 0 ? chars[chars.length - 1] : null))
+              : null,
+          },
+        },
       }
-      return { ...prev, playerData }
     })
   }
 
@@ -98,16 +140,79 @@ export default function LogGame({ initialData, isEditing }) {
     }))
   }
 
-  const toggleWoodlandPath = (path) => {
+  const toggleWoodlandPath = (playerId, path) => {
     setForm(prev => {
-      const current = prev.expansionEvents.woodland.paths_completed
+      const existing = prev.expansionEvents[playerId] ?? emptyPlayerEvents()
+      const current = existing.woodland.paths_completed
       const updated = current.includes(path) ? current.filter(p => p !== path) : [...current, path]
-      return { ...prev, expansionEvents: { ...prev.expansionEvents, woodland: { paths_completed: updated } } }
+      return {
+        ...prev,
+        expansionEvents: {
+          ...prev.expansionEvents,
+          [playerId]: { ...existing, woodland: { paths_completed: updated } },
+        },
+      }
     })
   }
 
-  const selectedPlayers = form.players.map(id => MOCK_PLAYERS.find(p => p.id === id)).filter(Boolean)
-  const charactersByExpansion = MOCK_CHARACTERS.reduce((acc, c) => {
+  const toggleDungeonBeaten = (playerId, checked) => {
+    setForm(prev => {
+      const existing = prev.expansionEvents[playerId] ?? emptyPlayerEvents()
+      return {
+        ...prev,
+        expansionEvents: {
+          ...prev.expansionEvents,
+          [playerId]: { ...existing, dungeon: { beaten: checked } },
+        },
+      }
+    })
+  }
+
+  const handleAddPlayerInline = () => {
+    const name = newPlayerName.trim()
+    if (!name) return
+    addPlayer.mutate(name, {
+      onSuccess: (created) => {
+        setShowAddPlayer(false)
+        setNewPlayerName('')
+        togglePlayer(created.id)
+      },
+    })
+  }
+
+  const validationErrors = {
+    date: !form.date ? 'Date is required' : null,
+    ending_id: !form.ending_id ? 'Ending is required' : null,
+    players: form.players.length < 2 ? 'Select at least 2 players' : null,
+  }
+  const hasErrors = Object.values(validationErrors).some(Boolean)
+
+  const handleSubmit = () => {
+    if (hasErrors) return
+    if (isEditing) {
+      updateGame.mutate(
+        { gameId, formState: form },
+        { onSuccess: () => navigate(`/games/${gameId}`) },
+      )
+    } else {
+      logGame.mutate(form, {
+        onSuccess: (newId) => navigate(`/games/${newId}`),
+      })
+    }
+  }
+
+  const handleDelete = () => {
+    if (!confirm('Delete this game? This cannot be undone.')) return
+    deleteGame.mutate(gameId, {
+      onSuccess: () => navigate('/history'),
+    })
+  }
+
+  const submitting = logGame.isPending || updateGame.isPending
+  const submitError = logGame.error || updateGame.error || deleteGame.error
+
+  const selectedPlayers = form.players.map(id => allPlayers.find(p => p.id === id)).filter(Boolean)
+  const charactersByExpansion = allCharacters.reduce((acc, c) => {
     if (!acc[c.expansion]) acc[c.expansion] = []
     acc[c.expansion].push(c)
     return acc
@@ -138,6 +243,9 @@ export default function LogGame({ initialData, isEditing }) {
                 value={form.date}
                 onChange={e => updateForm('date', e.target.value)}
               />
+              {validationErrors.date && (
+                <p className="text-danger text-xs mt-1 font-body">{validationErrors.date}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-body text-parchment/80 mb-1.5">Ending Type</label>
@@ -147,10 +255,13 @@ export default function LogGame({ initialData, isEditing }) {
                 onChange={e => updateForm('ending_id', e.target.value)}
               >
                 <option value="">Select an ending...</option>
-                {MOCK_ENDINGS.map(e => (
+                {allEndings.map(e => (
                   <option key={e.id} value={e.id}>{e.name} ({e.expansion})</option>
                 ))}
               </select>
+              {validationErrors.ending_id && (
+                <p className="text-danger text-xs mt-1 font-body">{validationErrors.ending_id}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-body text-parchment/80 mb-1.5">Notes (optional)</label>
@@ -168,7 +279,7 @@ export default function LogGame({ initialData, isEditing }) {
         <section className="animate-fade-up delay-2">
           <SectionHeader title="Players" subtitle="Select 2-5 adventurers" />
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {MOCK_PLAYERS.map(player => {
+            {allPlayers.map(player => {
               const selected = form.players.includes(player.id)
               return (
                 <button
@@ -194,23 +305,39 @@ export default function LogGame({ initialData, isEditing }) {
               + Add Player
             </button>
           </div>
-          {form.players.length > 0 && form.players.length < 2 && (
-            <p className="text-danger text-sm mt-2 font-body">At least 2 players required</p>
+          {validationErrors.players && (
+            <p className="text-danger text-sm mt-2 font-body">{validationErrors.players}</p>
           )}
           {showAddPlayer && (
-            <div className="mt-4 flex gap-2">
-              <input
-                className="input-field flex-1"
-                placeholder="New player name"
-                value={newPlayerName}
-                onChange={e => setNewPlayerName(e.target.value)}
-              />
-              <button type="button" className="btn-outline text-sm" onClick={() => { setShowAddPlayer(false); setNewPlayerName('') }}>
-                Cancel
-              </button>
-              <button type="button" className="btn-gold text-sm" onClick={() => { setShowAddPlayer(false); setNewPlayerName('') }}>
-                Add
-              </button>
+            <div className="mt-4">
+              <div className="flex gap-2">
+                <input
+                  className="input-field flex-1"
+                  placeholder="New player name"
+                  value={newPlayerName}
+                  onChange={e => setNewPlayerName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddPlayerInline() }}
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  className="btn-outline text-sm"
+                  onClick={() => { setShowAddPlayer(false); setNewPlayerName(''); addPlayer.reset() }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="btn-gold text-sm"
+                  onClick={handleAddPlayerInline}
+                  disabled={!newPlayerName.trim() || addPlayer.isPending}
+                >
+                  {addPlayer.isPending ? 'Adding...' : 'Add'}
+                </button>
+              </div>
+              {addPlayer.error && (
+                <p className="text-danger text-xs font-body mt-2">{addPlayer.error.message}</p>
+              )}
             </div>
           )}
         </section>
@@ -229,10 +356,9 @@ export default function LogGame({ initialData, isEditing }) {
                       <h3 className="font-heading text-lg text-parchment tracking-wide">{player.name}</h3>
                       <label className="flex items-center gap-2 cursor-pointer">
                         <input
-                          type="radio"
-                          name="winner"
+                          type="checkbox"
                           checked={data.is_winner}
-                          onChange={() => setWinner(player.id)}
+                          onChange={() => toggleWinner(player.id)}
                           className="accent-gold w-4 h-4"
                         />
                         <span className={`text-sm font-body ${data.is_winner ? 'text-gold' : 'text-muted'}`}>
@@ -346,68 +472,57 @@ export default function LogGame({ initialData, isEditing }) {
         </section>
 
         {/* ── Expansion Events ── */}
-        <section className="animate-fade-up delay-5">
-          <SectionHeader title="Expansion Events" subtitle="Did anything noteworthy happen?" />
-          <div className="space-y-4">
-            {/* Woodland */}
-            <div className="bg-surface border border-gold-dim/15 rounded-xl p-4">
-              <h4 className="font-heading text-sm text-teal-light tracking-wide mb-3">Woodland — Paths Completed</h4>
-              <div className="flex flex-wrap gap-2">
-                {WOODLAND_PATHS.map(path => {
-                  const selected = form.expansionEvents.woodland.paths_completed.includes(path)
-                  return (
-                    <button
-                      key={path}
-                      type="button"
-                      onClick={() => toggleWoodlandPath(path)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
-                        selected
-                          ? 'border-teal bg-teal/15 text-teal-light'
-                          : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
-                      }`}
-                    >
-                      {path}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+        {selectedPlayers.length > 0 && (
+          <section className="animate-fade-up delay-5">
+            <SectionHeader title="Expansion Events" subtitle="Per-player woodland paths and dungeon runs" />
+            <div className="space-y-4">
+              {selectedPlayers.map(player => {
+                const events = form.expansionEvents[player.id] ?? emptyPlayerEvents()
+                return (
+                  <div key={player.id} className="bg-surface border border-gold-dim/15 rounded-xl p-5">
+                    <h3 className="font-heading text-lg text-parchment tracking-wide mb-4">{player.name}</h3>
 
-            {/* Dungeon */}
-            <div className="bg-surface border border-gold-dim/15 rounded-xl p-4">
-              <h4 className="font-heading text-sm text-teal-light tracking-wide mb-3">Dungeon</h4>
-              <label className="flex items-center gap-3 mb-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.expansionEvents.dungeon.beaten}
-                  onChange={e => setForm(prev => ({
-                    ...prev,
-                    expansionEvents: {
-                      ...prev.expansionEvents,
-                      dungeon: { ...prev.expansionEvents.dungeon, beaten: e.target.checked },
-                    },
-                  }))}
-                  className="accent-teal w-4 h-4"
-                />
-                <span className="text-sm font-body text-parchment/80">Dungeon Beaten</span>
-              </label>
-              {form.expansionEvents.dungeon.beaten && (
-                <input
-                  className="input-field text-sm"
-                  placeholder="Floor / detail (optional)"
-                  value={form.expansionEvents.dungeon.detail}
-                  onChange={e => setForm(prev => ({
-                    ...prev,
-                    expansionEvents: {
-                      ...prev.expansionEvents,
-                      dungeon: { ...prev.expansionEvents.dungeon, detail: e.target.value },
-                    },
-                  }))}
-                />
-              )}
+                    <div className="mb-4">
+                      <h4 className="font-heading text-xs text-teal-light tracking-wide uppercase mb-2">Woodland — Paths Completed</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {WOODLAND_PATHS.map(path => {
+                          const selected = events.woodland.paths_completed.includes(path)
+                          return (
+                            <button
+                              key={path}
+                              type="button"
+                              onClick={() => toggleWoodlandPath(player.id, path)}
+                              className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
+                                selected
+                                  ? 'border-teal bg-teal/15 text-teal-light'
+                                  : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+                              }`}
+                            >
+                              {path}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-heading text-xs text-teal-light tracking-wide uppercase mb-2">Dungeon</h4>
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={events.dungeon.beaten}
+                          onChange={e => toggleDungeonBeaten(player.id, e.target.checked)}
+                          className="accent-teal w-4 h-4"
+                        />
+                        <span className="text-sm font-body text-parchment/80">Dungeon Beaten</span>
+                      </label>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* ── Review & Submit ── */}
         <section className="animate-fade-up delay-6">
@@ -419,7 +534,7 @@ export default function LogGame({ initialData, isEditing }) {
               <span className="text-parchment">{form.date || '—'}</span>
               <span className="text-muted">Ending</span>
               <span className="text-parchment">
-                {form.ending_id ? MOCK_ENDINGS.find(e => e.id === form.ending_id)?.name : '—'}
+                {form.ending_id ? allEndings.find(e => e.id === form.ending_id)?.name : '—'}
               </span>
               <span className="text-muted">Players</span>
               <span className="text-parchment">
@@ -427,7 +542,11 @@ export default function LogGame({ initialData, isEditing }) {
               </span>
               <span className="text-muted">Winner</span>
               <span className="text-gold">
-                {selectedPlayers.find(p => form.playerData[p.id]?.is_winner)?.name || '—'}
+                {(() => {
+                  const winners = selectedPlayers.filter(p => form.playerData[p.id]?.is_winner)
+                  if (winners.length === 0) return selectedPlayers.length > 0 ? 'Talisman' : '—'
+                  return winners.map(p => p.name).join(', ')
+                })()}
               </span>
             </div>
 
@@ -464,13 +583,27 @@ export default function LogGame({ initialData, isEditing }) {
               </div>
             )}
 
+            {submitError && (
+              <p className="text-danger text-sm font-body">{submitError.message}</p>
+            )}
+
             <div className="pt-4 flex gap-3">
-              <button type="button" className="btn-gold">
-                {isEditing ? 'Save Changes' : 'Submit Game'}
+              <button
+                type="button"
+                className="btn-gold"
+                onClick={handleSubmit}
+                disabled={submitting || hasErrors}
+              >
+                {submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Submit Game'}
               </button>
               {isEditing && (
-                <button type="button" className="btn-danger">
-                  Delete Game
+                <button
+                  type="button"
+                  className="btn-danger"
+                  onClick={handleDelete}
+                  disabled={deleteGame.isPending}
+                >
+                  {deleteGame.isPending ? 'Deleting...' : 'Delete Game'}
                 </button>
               )}
             </div>

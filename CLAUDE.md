@@ -47,7 +47,7 @@ Migrations live in `supabase/migrations/` and are applied via Supabase CLI. Seed
 
 ### Data model conventions
 
-- Supabase columns use `snake_case`; JS objects use `camelCase`. Every hook manually maps between the two.
+- Supabase columns use `snake_case`. In JS, top-level object fields are mapped to `camelCase` (e.g. `created_at` → `createdAt`), but nested DB-shaped rows (like `game.players[].is_winner`) keep their `snake_case` field names to avoid churn when passing row data through components.
 - All queries filter by `user_id` for row-level isolation.
 
 ### Design

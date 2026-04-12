@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MOCK_LEADERBOARD } from '../lib/mockData'
+import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
 
 const COLUMNS = [
   { key: 'name', label: 'Player', align: 'left' },
@@ -22,8 +22,9 @@ function SortIcon({ active, direction }) {
 export default function Leaderboard() {
   const [sortKey, setSortKey] = useState('wins')
   const [sortDir, setSortDir] = useState('desc')
+  const { data: rows = [], error } = useLeaderboardStats()
 
-  const sorted = [...MOCK_LEADERBOARD].sort((a, b) => {
+  const sorted = [...rows].sort((a, b) => {
     const aVal = a[sortKey]
     const bVal = b[sortKey]
     if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
@@ -49,6 +50,14 @@ export default function Leaderboard() {
         <p className="text-muted text-sm font-body mt-3">Across all logged games. Click any column to sort.</p>
       </div>
 
+      {error && (
+        <p className="text-danger text-sm font-body mb-4">{error.message}</p>
+      )}
+
+      {rows.length === 0 ? (
+        <p className="text-muted text-sm font-body italic">No stats yet. Log a game to populate the leaderboard.</p>
+      ) : (
+      <>
       {/* Desktop table */}
       <div className="hidden md:block animate-fade-up delay-2">
         <div className="bg-surface border border-gold-dim/15 rounded-xl overflow-hidden">
@@ -138,6 +147,8 @@ export default function Leaderboard() {
           </div>
         ))}
       </div>
+      </>
+      )}
     </div>
   )
 }
