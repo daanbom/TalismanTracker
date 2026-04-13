@@ -192,7 +192,9 @@ export default function GameDetail() {
                   <p className="text-sm font-heading text-parchment/80 tracking-wide">
                     {CATEGORY_LABELS[hs.category] || hs.category}
                   </p>
-                  <p className="text-gold/70 text-sm font-body mt-0.5">{hs.player?.name}</p>
+                  <p className="text-gold/70 text-sm font-body mt-0.5">
+                    {hs.player?.name ?? 'Game record'}
+                  </p>
                 </div>
                 <span className="text-gold font-display text-2xl">{hs.value}</span>
               </div>

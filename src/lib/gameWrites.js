@@ -14,13 +14,18 @@ export function buildGamePlayerRows(gameId, formState) {
   })
 }
 
+const GAME_LEVEL_HIGHSCORES = new Set(['most_denizens_on_spot'])
+
 export function buildHighscoreRows(gameId, formState) {
   const rows = []
   for (const [category, entry] of Object.entries(formState.highscores ?? {})) {
-    if (!entry?.player_id || entry.value === '' || entry.value == null) continue
+    if (!entry) continue
+    if (entry.value === '' || entry.value == null) continue
+    const isGameLevel = GAME_LEVEL_HIGHSCORES.has(category)
+    if (!isGameLevel && !entry.player_id) continue
     rows.push({
       game_id: gameId,
-      player_id: entry.player_id,
+      player_id: isGameLevel ? null : entry.player_id,
       category,
       value: Number(entry.value),
     })

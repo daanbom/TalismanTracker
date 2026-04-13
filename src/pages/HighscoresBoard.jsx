@@ -73,6 +73,15 @@ const CATEGORY_ICONS = {
       <polyline points="22 8.5 12 15.5 2 8.5" />
     </svg>
   ),
+  most_deaths: (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a8 8 0 0 0-8 8c0 3 1.5 5.5 4 7v3h8v-3c2.5-1.5 4-4 4-7a8 8 0 0 0-8-8z" />
+      <line x1="9" y1="17" x2="9" y2="21" />
+      <line x1="15" y1="17" x2="15" y2="21" />
+      <circle cx="9" cy="10" r="1" fill="currentColor" />
+      <circle cx="15" cy="10" r="1" fill="currentColor" />
+    </svg>
+  ),
 }
 
 export default function HighscoresBoard() {
@@ -93,13 +102,14 @@ export default function HighscoresBoard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {records.map((record, i) => {
-          const empty = record.value == null
+          const empty = record.entries.length === 0
+          const [gold, ...rest] = record.entries
           return (
             <div
               key={record.category}
               className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 animate-fade-up delay-${i + 2}`}
             >
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start justify-between mb-3">
                 <div className="text-gold/50">{CATEGORY_ICONS[record.category]}</div>
                 <span className={`font-display text-3xl tracking-wider leading-none ${empty ? 'text-muted/40' : 'text-gold'}`}>
                   {empty ? '×' : record.value}
@@ -108,15 +118,46 @@ export default function HighscoresBoard() {
               <h3 className="font-heading text-parchment text-lg tracking-wide mb-2">{record.label}</h3>
               <div className="flex items-center justify-between text-sm font-body">
                 <span className="text-gold/80">{record.player ?? 'No record yet'}</span>
+
                 {!empty && (
-                  <Link
-                    to={`/games/${record.game_id}`}
-                    className="text-muted hover:text-teal-light transition-colors"
-                  >
-                    {new Date(record.game_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </Link>
+                  <span className="text-gold font-display text-3xl tracking-wider leading-none">
+                    {gold.value}
+                  </span>
                 )}
               </div>
+              <h3 className="font-heading text-parchment text-lg tracking-wide mb-3">{record.label}</h3>
+
+              {empty ? (
+                <p className="text-muted text-sm font-body">No record yet</p>
+              ) : (
+                <ol className="space-y-1.5">
+                  {record.entries.map((entry) => (
+                    <li key={entry.rank} className="flex items-center justify-between text-sm font-body">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`w-4 shrink-0 text-right font-display ${entry.rank === 1 ? 'text-gold' : 'text-muted/60'}`}>
+                          {entry.rank}
+                        </span>
+                        <span className={`truncate ${entry.rank === 1 ? 'text-gold/90' : 'text-parchment/70'}`}>
+                          {entry.player ?? 'Talisman'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0 ml-2">
+                        <span className={`font-display ${entry.rank === 1 ? 'text-parchment' : 'text-muted'}`}>
+                          {entry.value}
+                        </span>
+                        {entry.game_id && (
+                          <Link
+                            to={`/games/${entry.game_id}`}
+                            className="text-muted/50 hover:text-teal-light transition-colors text-xs"
+                          >
+                            {new Date(entry.game_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </Link>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           )
         })}
