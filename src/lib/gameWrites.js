@@ -44,24 +44,33 @@ export function buildExpansionEventRows(gameId, formState) {
     const perPlayer = events[playerId]
     if (!perPlayer) continue
 
-    for (const path of perPlayer.woodland?.paths_completed ?? []) {
+    const playedChars = formState.playerData?.[playerId]?.characters_played ?? []
+    const fallbackChar = playedChars.length === 1 ? playedChars[0] : null
+
+    for (const entry of perPlayer.woodland?.paths_completed ?? []) {
+      const path = typeof entry === 'string' ? entry : entry?.path
       if (!path) continue
+      const character = (typeof entry === 'object' && entry?.character) || fallbackChar || null
       rows.push({
         game_id: gameId,
         player_id: playerId,
         expansion: 'woodland',
         event_type: 'path_completed',
         detail: path,
+        character,
       })
     }
 
-    if (perPlayer.dungeon?.beaten) {
+    const dungeon = perPlayer.dungeon
+    if (dungeon?.beaten) {
+      const character = dungeon.character || fallbackChar || null
       rows.push({
         game_id: gameId,
         player_id: playerId,
         expansion: 'dungeon',
         event_type: 'dungeon_beaten',
         detail: null,
+        character,
       })
     }
   }
