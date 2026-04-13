@@ -34,6 +34,7 @@ const INITIAL_STATE = {
   date: new Date().toISOString().split('T')[0],
   ending_id: '',
   notes: '',
+  optional_expansions: [],
   players: [],
   playerData: {},
   highscores: {},
@@ -42,8 +43,13 @@ const INITIAL_STATE = {
 
 const emptyPlayerEvents = () => ({
   woodland: { paths_completed: [] },
-  dungeon: { beaten: false },
+  dungeon: { beaten: false, character: null },
 })
+
+const OPTIONAL_EXPANSIONS = [
+  { key: 'dragon', label: 'The Dragon' },
+  { key: 'harbinger', label: 'The Harbinger' },
+]
 
 function SectionHeader({ title, subtitle }) {
   return (
@@ -204,7 +210,28 @@ export default function LogGame({ initialData, isEditing, gameId }) {
     setForm(prev => {
       const existing = prev.expansionEvents[playerId] ?? emptyPlayerEvents()
       const current = existing.woodland.paths_completed
-      const updated = current.includes(path) ? current.filter(p => p !== path) : [...current, path]
+      const idx = current.findIndex(e => e.path === path)
+      const playedChars = prev.playerData[playerId]?.characters_played ?? []
+      const fallbackChar = playedChars.length === 1 ? playedChars[0] : null
+      const updated = idx >= 0
+        ? current.filter((_, i) => i !== idx)
+        : [...current, { path, character: fallbackChar }]
+      return {
+        ...prev,
+        expansionEvents: {
+          ...prev.expansionEvents,
+          [playerId]: { ...existing, woodland: { paths_completed: updated } },
+        },
+      }
+    })
+  }
+
+  const setWoodlandPathCharacter = (playerId, path, character) => {
+    setForm(prev => {
+      const existing = prev.expansionEvents[playerId] ?? emptyPlayerEvents()
+      const updated = existing.woodland.paths_completed.map(e =>
+        e.path === path ? { ...e, character: character || null } : e,
+      )
       return {
         ...prev,
         expansionEvents: {
@@ -218,12 +245,47 @@ export default function LogGame({ initialData, isEditing, gameId }) {
   const toggleDungeonBeaten = (playerId, checked) => {
     setForm(prev => {
       const existing = prev.expansionEvents[playerId] ?? emptyPlayerEvents()
+      const playedChars = prev.playerData[playerId]?.characters_played ?? []
+      const fallbackChar = playedChars.length === 1 ? playedChars[0] : null
       return {
         ...prev,
         expansionEvents: {
           ...prev.expansionEvents,
-          [playerId]: { ...existing, dungeon: { beaten: checked } },
+          [playerId]: {
+            ...existing,
+            dungeon: checked
+              ? { beaten: true, character: existing.dungeon.character || fallbackChar }
+              : { beaten: false, character: null },
+          },
         },
+      }
+    })
+  }
+
+  const setDungeonCharacter = (playerId, character) => {
+    setForm(prev => {
+      const existing = prev.expansionEvents[playerId] ?? emptyPlayerEvents()
+      return {
+        ...prev,
+        expansionEvents: {
+          ...prev.expansionEvents,
+          [playerId]: {
+            ...existing,
+            dungeon: { ...existing.dungeon, character: character || null },
+          },
+        },
+      }
+    })
+  }
+
+  const toggleOptionalExpansion = (key) => {
+    setForm(prev => {
+      const current = prev.optional_expansions ?? []
+      return {
+        ...prev,
+        optional_expansions: current.includes(key)
+          ? current.filter(k => k !== key)
+          : [...current, key],
       }
     })
   }
@@ -243,12 +305,23 @@ export default function LogGame({ initialData, isEditing, gameId }) {
   const playersWithNoCharacter = form.players.filter(
     id => !form.playerData[id]?.characters_played?.length,
   )
+  const playersWithInvalidDeaths = form.players.filter(id => {
+    const pd = form.playerData[id]
+    if (!pd) return false
+    const n = pd.characters_played?.length ?? 0
+    if (n === 0) return false
+    const d = Number(pd.total_deaths ?? 0)
+    return d !== n && d !== n - 1
+  })
   const step1Errors = {
     date: !form.date ? 'Date is required' : null,
     ending_id: !form.ending_id ? 'Ending is required' : null,
     players: form.players.length < 2 ? 'Select at least 2 players' : null,
     characters: playersWithNoCharacter.length > 0
       ? 'Every player needs at least one character'
+      : null,
+    deaths: playersWithInvalidDeaths.length > 0
+      ? 'Total deaths must equal characters played or one less'
       : null,
   }
   const step1HasErrors = Object.values(step1Errors).some(Boolean)
@@ -367,6 +440,31 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                 )}
               </div>
               <div>
+                <label className="block text-sm font-body text-parchment/80 mb-1.5">Optional Expansions</label>
+                <div className="flex flex-wrap gap-2">
+                  {OPTIONAL_EXPANSIONS.map(opt => {
+                    const selected = (form.optional_expansions ?? []).includes(opt.key)
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => toggleOptionalExpansion(opt.key)}
+                        className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
+                          selected
+                            ? 'border-gold bg-gold/10 text-gold'
+                            : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    )
+                  })}
+                </div>
+                <p className="text-muted text-xs mt-1.5 font-body">
+                  Only check what was actually in play, everything else is assumed on.
+                </p>
+              </div>
+              <div>
                 <label className="block text-sm font-body text-parchment/80 mb-1.5">Notes (optional)</label>
                 <textarea
                   className="input-field min-h-[80px] resize-y"
@@ -476,24 +574,6 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                       {/* Characters played */}
                       <div className="mb-4">
                         <label className="block text-sm font-body text-parchment/70 mb-2">Characters Played (in order)</label>
-                        <div className="flex flex-wrap gap-2 mb-2">
-                          {data.characters_played.map((char, idx) => (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center gap-1.5 bg-elevated px-3 py-1 rounded-full text-sm font-body text-parchment/80"
-                            >
-                              <span className="text-gold-dim text-xs">{idx + 1}.</span>
-                              {char}
-                              <button
-                                type="button"
-                                onClick={() => removeCharacter(player.id, idx)}
-                                className="text-muted hover:text-danger ml-0.5 transition-colors"
-                              >
-                                &times;
-                              </button>
-                            </span>
-                          ))}
-                        </div>
                         <select
                           className="input-field text-sm"
                           value=""
@@ -502,12 +582,32 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                           <option value="">Add a character...</option>
                           {orderedExpansions.map(exp => (
                             <optgroup key={exp} label={exp}>
-                              {chars.map(c => (
+                              {charactersByExpansion[exp].map(c => (
                                 <option key={c.id} value={c.name}>{c.name}</option>
                               ))}
                             </optgroup>
                           ))}
                         </select>
+                        {data.characters_played.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-2">
+                            {data.characters_played.map((char, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center gap-1.5 bg-elevated px-3 py-1 rounded-full text-sm font-body text-parchment/80"
+                              >
+                                <span className="text-gold-dim text-xs">{idx + 1}.</span>
+                                {char}
+                                <button
+                                  type="button"
+                                  onClick={() => removeCharacter(player.id, idx)}
+                                  className="text-muted hover:text-danger ml-0.5 transition-colors"
+                                >
+                                  &times;
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         {step1Attempted && playersWithNoCharacter.includes(player.id) && (
                           <p className="text-danger text-xs mt-1.5 font-body">Add at least one character</p>
                         )}
@@ -523,6 +623,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                           value={data.total_deaths}
                           onChange={e => updatePlayerData(player.id, 'total_deaths', parseInt(e.target.value) || 0)}
                         />
+                        {step1Attempted && playersWithInvalidDeaths.includes(player.id) && (
+                          <p className="text-danger text-xs mt-1.5 font-body">
+                            Must be {Math.max(0, data.characters_played.length - 1)} or {data.characters_played.length}
+                          </p>
+                        )}
                       </div>
 
                       {/* Winning character override */}
@@ -547,10 +652,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                         <p className="text-xs font-heading text-muted uppercase tracking-widest mb-3">Expansion Events</p>
 
                         <div className="mb-3">
-                          <h4 className="font-heading text-xs text-teal-light tracking-wide uppercase mb-2">Woodland — Paths Completed</h4>
-                          <div className="flex flex-wrap gap-2">
+                          <h4 className="font-heading text-xs text-teal-light tracking-wide uppercase mb-2">Woodland, Paths Completed</h4>
+                          <div className="flex flex-wrap gap-2 mb-2">
                             {WOODLAND_PATHS.map(path => {
-                              const selected = events.woodland.paths_completed.includes(path)
+                              const entry = events.woodland.paths_completed.find(e => e.path === path)
+                              const selected = !!entry
                               return (
                                 <button
                                   key={path}
@@ -567,6 +673,25 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                               )
                             })}
                           </div>
+                          {events.woodland.paths_completed.length > 0 && data.characters_played.length > 1 && (
+                            <div className="space-y-1.5 mt-2">
+                              {events.woodland.paths_completed.map(entry => (
+                                <div key={entry.path} className="flex items-center gap-2">
+                                  <span className="text-xs font-body text-muted min-w-[120px]">{entry.path}</span>
+                                  <select
+                                    className="input-field text-xs py-1 flex-1"
+                                    value={entry.character || ''}
+                                    onChange={e => setWoodlandPathCharacter(player.id, entry.path, e.target.value)}
+                                  >
+                                    <option value="">Which character?</option>
+                                    {data.characters_played.map((c, i) => (
+                                      <option key={`${c}-${i}`} value={c}>{c}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
                         <div>
@@ -580,6 +705,20 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                             />
                             <span className="text-sm font-body text-parchment/80">Dungeon Beaten</span>
                           </label>
+                          {events.dungeon.beaten && data.characters_played.length > 1 && (
+                            <div className="mt-2">
+                              <select
+                                className="input-field text-xs py-1"
+                                value={events.dungeon.character || ''}
+                                onChange={e => setDungeonCharacter(player.id, e.target.value)}
+                              >
+                                <option value="">Which character?</option>
+                                {data.characters_played.map((c, i) => (
+                                  <option key={`${c}-${i}`} value={c}>{c}</option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -744,20 +883,20 @@ export default function LogGame({ initialData, isEditing, gameId }) {
             <h3 className="font-heading text-base text-parchment tracking-wide mb-4">Summary</h3>
             <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm font-body">
               <span className="text-muted">Date</span>
-              <span className="text-parchment">{form.date || '—'}</span>
+              <span className="text-parchment">{form.date || 'NA'}</span>
               <span className="text-muted">Ending</span>
               <span className="text-parchment">
-                {form.ending_id ? allEndings.find(e => e.id === form.ending_id)?.name : '—'}
+                {form.ending_id ? allEndings.find(e => e.id === form.ending_id)?.name : 'NA'}
               </span>
               <span className="text-muted">Players</span>
               <span className="text-parchment">
-                {selectedPlayers.length > 0 ? selectedPlayers.map(p => p.name).join(', ') : '—'}
+                {selectedPlayers.length > 0 ? selectedPlayers.map(p => p.name).join(', ') : 'NA'}
               </span>
               <span className="text-muted">Winner</span>
               <span className="text-gold">
                 {(() => {
                   const winners = selectedPlayers.filter(p => form.playerData[p.id]?.is_winner)
-                  if (winners.length === 0) return selectedPlayers.length > 0 ? 'Talisman' : '—'
+                  if (winners.length === 0) return selectedPlayers.length > 0 ? 'Talisman' : 'NA'
                   return winners.map(p => p.name).join(', ')
                 })()}
               </span>

@@ -12,6 +12,7 @@ export function useUpdateGame() {
           date: formState.date,
           ending_id: formState.ending_id,
           notes: formState.notes || null,
+          optional_expansions: formState.optional_expansions ?? [],
           updated_at: new Date().toISOString(),
         })
         .eq('id', gameId)
@@ -27,6 +28,7 @@ export function useUpdateGame() {
       queryClient.invalidateQueries({ queryKey: ['game', gameId] })
       queryClient.invalidateQueries({ queryKey: ['leaderboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['highscoreRecords'] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
     },
   })
 }

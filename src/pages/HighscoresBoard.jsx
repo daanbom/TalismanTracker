@@ -94,19 +94,21 @@ export default function HighscoresBoard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {records.map((record, i) => {
           const empty = record.entries.length === 0
-          const [gold, ...rest] = record.entries
+          const [gold] = record.entries
           return (
             <div
               key={record.category}
               className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 animate-fade-up delay-${i + 2}`}
             >
-              <div className="flex items-start justify-between mb-1">
-                <div className="text-gold/50">{CATEGORY_ICONS[record.category]}</div>
-                <span className={`font-display text-3xl tracking-wider leading-none ${empty ? 'text-muted/40' : 'text-gold'}`}>
+              <div className="flex items-center justify-between mb-3 gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="text-gold/50 shrink-0">{CATEGORY_ICONS[record.category]}</div>
+                  <h3 className="font-heading text-parchment text-xl tracking-wide truncate">{record.label}</h3>
+                </div>
+                <span className={`font-display text-3xl tracking-wider leading-none shrink-0 ${empty ? 'text-muted/40' : 'text-gold'}`}>
                   {empty ? '×' : gold.value}
                 </span>
               </div>
-              <h3 className="font-heading text-parchment text-2xl tracking-wide mb-3">{record.label}</h3>
               {empty && <p className="text-muted text-sm font-body mb-3">No record yet</p>}
 
               {!empty && (
