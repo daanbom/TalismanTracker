@@ -32,7 +32,11 @@
       "Bash(gh project:*)",
       "Bash(gh issue:*)",
       "Bash(npx supabase:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(git remote:*)",
+      "Bash(gh pr create --title 'feat\\(highscores\\): most-deaths category and top-5 rankings' --body ':*)",
+      "Bash(git stash:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
