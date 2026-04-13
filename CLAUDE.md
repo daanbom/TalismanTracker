@@ -45,6 +45,15 @@ Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players
 
 Migrations live in `supabase/migrations/` and are applied via Supabase CLI. Seed data (characters, endings) is included in the initial migration.
 
+### Supabase workflow
+
+- The project is linked to a hosted Supabase instance — there is no local docker DB. All changes go directly to the hosted project.
+- Schema changes are made by creating a new migration file in `supabase/migrations/` named `YYYYMMDDHHMMSS_short_description.sql`, then running `npx supabase db push` to apply it.
+- **Never** modify existing migration files that are already applied remotely — always add a new one. The remote `schema_migrations` table tracks applied versions, and `db push` errors if local files don't match remote history.
+- **Never** delete migration files from `supabase/migrations/` unless they've also been reverted on the remote. Deleted local files cause `db push` to fail with "Remote migration versions not found".
+- If `db push` complains about missing local migrations, restore them from git (`git checkout -- supabase/migrations/<file>`) rather than repairing history as reverted.
+- Destructive or risky migrations (dropping columns, renaming tables, backfills) should be confirmed with the user before running `db push`.
+
 ### Data model conventions
 
 - Supabase columns use `snake_case`. In JS, top-level object fields are mapped to `camelCase` (e.g. `created_at` → `createdAt`), but nested DB-shaped rows (like `game.players[].is_winner`) keep their `snake_case` field names to avoid churn when passing row data through components.

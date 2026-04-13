@@ -9,10 +9,10 @@ import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 
 const HIGHSCORE_CATEGORIES = [
-  { key: 'most_coins', label: 'Most Coins' },
-  { key: 'most_followers', label: 'Most Followers' },
-  { key: 'most_objects', label: 'Most Objects' },
-  { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot' },
+  { key: 'most_coins', label: 'Most Coins', gameLevel: false },
+  { key: 'most_followers', label: 'Most Followers', gameLevel: false },
+  { key: 'most_objects', label: 'Most Objects', gameLevel: false },
+  { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot', gameLevel: true },
 ]
 
 const WOODLAND_PATHS = [
@@ -310,30 +310,32 @@ export default function LogGame({ initialData, isEditing, gameId }) {
           )}
           {showAddPlayer && (
             <div className="mt-4">
-              <div className="flex gap-2">
+              <div className="space-y-2">
                 <input
-                  className="input-field flex-1"
+                  className="input-field w-full"
                   placeholder="New player name"
                   value={newPlayerName}
                   onChange={e => setNewPlayerName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddPlayerInline() }}
                   autoFocus
                 />
-                <button
-                  type="button"
-                  className="btn-outline text-sm"
-                  onClick={() => { setShowAddPlayer(false); setNewPlayerName(''); addPlayer.reset() }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn-gold text-sm"
-                  onClick={handleAddPlayerInline}
-                  disabled={!newPlayerName.trim() || addPlayer.isPending}
-                >
-                  {addPlayer.isPending ? 'Adding...' : 'Add'}
-                </button>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    className="btn-outline text-sm"
+                    onClick={() => { setShowAddPlayer(false); setNewPlayerName(''); addPlayer.reset() }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-gold text-sm"
+                    onClick={handleAddPlayerInline}
+                    disabled={!newPlayerName.trim() || addPlayer.isPending}
+                  >
+                    {addPlayer.isPending ? 'Adding...' : 'Add'}
+                  </button>
+                </div>
               </div>
               {addPlayer.error && (
                 <p className="text-danger text-xs font-body mt-2">{addPlayer.error.message}</p>
@@ -446,17 +448,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
             {HIGHSCORE_CATEGORIES.map(cat => (
               <div key={cat.key} className="bg-surface border border-gold-dim/15 rounded-xl p-4">
                 <label className="block text-sm font-heading text-parchment/80 tracking-wide mb-3">{cat.label}</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <select
-                    className="input-field text-sm"
-                    value={form.highscores[cat.key]?.player_id || ''}
-                    onChange={e => updateHighscore(cat.key, 'player_id', e.target.value)}
-                  >
-                    <option value="">Player...</option>
-                    {selectedPlayers.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+                {cat.gameLevel ? (
                   <input
                     type="number"
                     min="0"
@@ -465,7 +457,28 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                     value={form.highscores[cat.key]?.value || ''}
                     onChange={e => updateHighscore(cat.key, 'value', e.target.value)}
                   />
-                </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <select
+                      className="input-field text-sm"
+                      value={form.highscores[cat.key]?.player_id || ''}
+                      onChange={e => updateHighscore(cat.key, 'player_id', e.target.value)}
+                    >
+                      <option value="">Player...</option>
+                      {selectedPlayers.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      className="input-field text-sm"
+                      placeholder="Value"
+                      value={form.highscores[cat.key]?.value || ''}
+                      onChange={e => updateHighscore(cat.key, 'value', e.target.value)}
+                    />
+                  </div>
+                )}
               </div>
             ))}
           </div>

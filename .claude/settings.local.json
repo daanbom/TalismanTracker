@@ -32,7 +32,9 @@
       "Bash(gh project:*)",
       "Bash(gh issue:*)",
       "Bash(npx supabase:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git checkout:*)",
+      "Bash(git remote:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
