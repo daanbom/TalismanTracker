@@ -30,7 +30,8 @@ export default function EditGame() {
       return acc
     }, {}),
     highscores: game.highscores.reduce((acc, h) => {
-      acc[h.category] = { player_id: h.player?.id ?? '', value: h.value }
+      if (!acc[h.category]) acc[h.category] = []
+      acc[h.category].push({ player_id: h.player?.id ?? '', value: h.value })
       return acc
     }, {}),
     expansionEvents: game.players.reduce((acc, gp) => {
