@@ -1,6 +1,10 @@
--- Add new highscore categories
+-- Expand allowed highscore categories.
+-- Replaces the original 4-value constraint with the full set.
+-- Migrate legacy 'most_coins' rows to 'most_gold' before re-adding the constraint.
 alter table game_highscores
   drop constraint game_highscores_category_check;
+
+update game_highscores set category = 'most_gold' where category = 'most_coins';
 
 alter table game_highscores
   add constraint game_highscores_category_check
