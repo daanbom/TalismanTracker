@@ -2,9 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 
 const CATEGORY_LABELS = {
-  most_coins: 'Most Coins',
+  most_gold: 'Most Gold',
   most_followers: 'Most Followers',
   most_objects: 'Most Objects',
+  most_fate: 'Most Fate',
+  most_strength: 'Most Strength (without bonus)',
+  most_craft: 'Most Craft (without bonus)',
+  most_life: 'Most Life',
+  most_deaths: 'Most Deaths',
+  most_toad_times: 'Most Times Turned Into Toad',
+  longest_toad_streak: 'Longest Toad Streak (consecutive turns)',
   most_denizens_on_spot: 'Most Denizens on Spot',
   most_deaths: 'Most Deaths in One Game',
 }

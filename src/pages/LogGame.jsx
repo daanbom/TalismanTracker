@@ -9,10 +9,19 @@ import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 
 const HIGHSCORE_CATEGORIES = [
-  { key: 'most_coins', label: 'Most Coins', gameLevel: false },
-  { key: 'most_followers', label: 'Most Followers', gameLevel: false },
-  { key: 'most_objects', label: 'Most Objects', gameLevel: false },
-  { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot', gameLevel: true },
+
+  { key: 'most_gold', label: 'Most Gold' },
+  { key: 'most_followers', label: 'Most Followers' },
+  { key: 'most_objects', label: 'Most Objects' },
+  { key: 'most_fate', label: 'Most Fate' },
+  { key: 'most_strength', label: 'Most Strength (without bonus)' },
+  { key: 'most_craft', label: 'Most Craft (without bonus)' },
+  { key: 'most_life', label: 'Most Life' },
+  { key: 'most_deaths', label: 'Most Deaths' },
+  { key: 'most_toad_times', label: 'Most Times Turned Into Toad' },
+  { key: 'longest_toad_streak', label: 'Longest Toad Streak (consecutive turns)' },
+  { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot' },
+
 ]
 
 const WOODLAND_PATHS = [
