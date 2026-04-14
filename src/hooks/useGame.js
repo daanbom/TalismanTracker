@@ -10,6 +10,7 @@ export function useGame(id) {
         .from('games')
         .select(`
           id,
+          title,
           date,
           notes,
           optional_expansions,
@@ -44,6 +45,7 @@ export function useGame(id) {
       if (error) throw error
       return {
         id: data.id,
+        title: data.title,
         date: data.date,
         notes: data.notes,
         optional_expansions: data.optional_expansions ?? [],

@@ -16,6 +16,7 @@ export default function EditGame() {
   if (isLoading || !game) return null
 
   const initialData = {
+    title: game.title ?? '',
     date: game.date,
     ending_id: game.ending?.id ?? '',
     notes: game.notes || '',

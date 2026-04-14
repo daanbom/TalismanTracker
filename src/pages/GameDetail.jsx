@@ -76,7 +76,7 @@ export default function GameDetail() {
             <Link to="/history" className="text-muted text-sm font-body hover:text-gold/60 transition-colors mb-2 inline-block">
               &larr; Back to History
             </Link>
-            <h1 className="font-heading text-3xl text-parchment tracking-wide">Game Detail</h1>
+            <h1 className="font-heading text-3xl text-parchment tracking-wide">{game.title}</h1>
           </div>
           <div className="flex gap-2 mt-6">
             <Link to={`/games/${game.id}/edit`} className="btn-outline text-sm">
