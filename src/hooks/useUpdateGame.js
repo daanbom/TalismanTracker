@@ -9,6 +9,7 @@ export function useUpdateGame() {
       const { error: gErr } = await supabase
         .from('games')
         .update({
+          title: formState.title.trim(),
           date: formState.date,
           ending_id: formState.ending_id,
           notes: formState.notes || null,

@@ -9,6 +9,7 @@ export function useLogGame() {
       const { data: game, error: gErr } = await supabase
         .from('games')
         .insert({
+          title: formState.title.trim(),
           date: formState.date,
           ending_id: formState.ending_id,
           notes: formState.notes || null,

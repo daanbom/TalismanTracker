@@ -30,7 +30,10 @@ const WOODLAND_PATHS = [
   'Dark Path',
 ]
 
+const TITLE_MAX_LENGTH = 100
+
 const INITIAL_STATE = {
+  title: '',
   date: new Date().toISOString().split('T')[0],
   ending_id: '',
   notes: '',
@@ -314,6 +317,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
     return d !== n && d !== n - 1
   })
   const step1Errors = {
+    title: !form.title?.trim()
+      ? 'Title is required'
+      : form.title.trim().length > TITLE_MAX_LENGTH
+        ? `Title must be ${TITLE_MAX_LENGTH} characters or fewer`
+        : null,
     date: !form.date ? 'Date is required' : null,
     ending_id: !form.ending_id ? 'Ending is required' : null,
     players: form.players.length < 2 ? 'Select at least 2 players' : null,
@@ -411,6 +419,20 @@ export default function LogGame({ initialData, isEditing, gameId }) {
           <section className="animate-fade-up delay-1">
             <SectionHeader title="Game Setup" subtitle="When did the battle take place?" />
             <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-body text-parchment/80 mb-1.5">Title</label>
+                <input
+                  type="text"
+                  className="input-field"
+                  maxLength={TITLE_MAX_LENGTH}
+                  placeholder="e.g. The Night the Toad Rose"
+                  value={form.title}
+                  onChange={e => updateForm('title', e.target.value)}
+                />
+                {step1Attempted && step1Errors.title && (
+                  <p className="text-danger text-xs mt-1 font-body">{step1Errors.title}</p>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-body text-parchment/80 mb-1.5">Date</label>
                 <input
@@ -882,6 +904,8 @@ export default function LogGame({ initialData, isEditing, gameId }) {
           <div className="bg-surface border border-gold-dim/15 rounded-xl p-6 mb-6">
             <h3 className="font-heading text-base text-parchment tracking-wide mb-4">Summary</h3>
             <div className="grid grid-cols-2 gap-y-3 gap-x-6 text-sm font-body">
+              <span className="text-muted">Title</span>
+              <span className="text-parchment">{form.title?.trim() || 'NA'}</span>
               <span className="text-muted">Date</span>
               <span className="text-parchment">{form.date || 'NA'}</span>
               <span className="text-muted">Ending</span>

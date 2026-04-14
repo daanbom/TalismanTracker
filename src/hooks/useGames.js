@@ -9,6 +9,7 @@ export function useGames() {
         .from('games')
         .select(`
           id,
+          title,
           date,
           notes,
           created_at,
@@ -27,6 +28,7 @@ export function useGames() {
       if (error) throw error
       return data.map((g) => ({
         id: g.id,
+        title: g.title,
         date: g.date,
         notes: g.notes,
         createdAt: g.created_at,
