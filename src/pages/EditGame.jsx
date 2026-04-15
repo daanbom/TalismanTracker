@@ -26,8 +26,8 @@ export default function EditGame() {
       acc[p.player.id] = {
         characters_played: p.characters_played,
         total_deaths: p.total_deaths,
+        total_toad_times: p.total_toad_times ?? 0,
         is_winner: p.is_winner,
-        winning_character: p.winning_character,
       }
       return acc
     }, {}),

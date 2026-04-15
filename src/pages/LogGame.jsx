@@ -16,8 +16,6 @@ const HIGHSCORE_CATEGORIES = [
   { key: 'most_strength', label: 'Most Strength' },
   { key: 'most_craft', label: 'Most Craft' },
   { key: 'most_life', label: 'Most Life' },
-  { key: 'most_deaths', label: 'Most Deaths' },
-  { key: 'most_toad_times', label: 'Most Times Turned Into Toad' },
   { key: 'longest_toad_streak', label: 'Longest Toad Streak' },
   { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot', gameLevel: true },
 ]
@@ -120,7 +118,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
       const playerData = { ...prev.playerData }
       const expansionEvents = { ...prev.expansionEvents }
       if (!exists) {
-        playerData[playerId] = { characters_played: [], total_deaths: 0, is_winner: false, winning_character: null }
+        playerData[playerId] = { characters_played: [], total_deaths: 0, total_toad_times: 0, is_winner: false }
         expansionEvents[playerId] = emptyPlayerEvents()
       } else {
         delete playerData[playerId]
@@ -144,19 +142,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
     setForm(prev => {
       const current = prev.playerData[playerId]
       if (!current) return prev
-      const nextIsWinner = !current.is_winner
-      const chars = current.characters_played
       return {
         ...prev,
         playerData: {
           ...prev.playerData,
-          [playerId]: {
-            ...current,
-            is_winner: nextIsWinner,
-            winning_character: nextIsWinner
-              ? (current.winning_character || (chars.length > 0 ? chars[chars.length - 1] : null))
-              : null,
-          },
+          [playerId]: { ...current, is_winner: !current.is_winner },
         },
       }
     })
@@ -635,39 +625,34 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                         )}
                       </div>
 
-                      {/* Deaths */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-body text-parchment/70 mb-1.5">Total Deaths</label>
-                        <input
-                          type="number"
-                          min="0"
-                          className="input-field w-24"
-                          value={data.total_deaths}
-                          onChange={e => updatePlayerData(player.id, 'total_deaths', parseInt(e.target.value) || 0)}
-                        />
-                        {step1Attempted && playersWithInvalidDeaths.includes(player.id) && (
-                          <p className="text-danger text-xs mt-1.5 font-body">
-                            Must be {Math.max(0, data.characters_played.length - 1)} or {data.characters_played.length}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Winning character override */}
-                      {data.is_winner && (
-                        <div className="mb-4 p-3 bg-gold/5 border border-gold/20 rounded-lg">
-                          <label className="block text-sm font-body text-gold/80 mb-1.5">Winning Character</label>
-                          <select
-                            className="input-field text-sm"
-                            value={data.winning_character || ''}
-                            onChange={e => updatePlayerData(player.id, 'winning_character', e.target.value)}
-                          >
-                            <option value="">Select...</option>
-                            {data.characters_played.map((char, idx) => (
-                              <option key={idx} value={char}>{char}</option>
-                            ))}
-                          </select>
+                      {/* Deaths & Toad times */}
+                      <div className="mb-4 flex gap-4">
+                        <div>
+                          <label className="block text-sm font-body text-parchment/70 mb-1.5">Total Deaths</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="input-field w-24"
+                            value={data.total_deaths}
+                            onChange={e => updatePlayerData(player.id, 'total_deaths', parseInt(e.target.value) || 0)}
+                          />
+                          {step1Attempted && playersWithInvalidDeaths.includes(player.id) && (
+                            <p className="text-danger text-xs mt-1.5 font-body">
+                              Must be {Math.max(0, data.characters_played.length - 1)} or {data.characters_played.length}
+                            </p>
+                          )}
                         </div>
-                      )}
+                        <div>
+                          <label className="block text-sm font-body text-parchment/70 mb-1.5">Times Toadified</label>
+                          <input
+                            type="number"
+                            min="0"
+                            className="input-field w-24"
+                            value={data.total_toad_times ?? 0}
+                            onChange={e => updatePlayerData(player.id, 'total_toad_times', Math.max(0, parseInt(e.target.value) || 0))}
+                          />
+                        </div>
+                      </div>
 
                       {/* Expansion Events */}
                       <div className="border-t border-gold-dim/15 pt-4 mt-2">
@@ -943,6 +928,9 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                         <span className="text-parchment/60">
                           {data.characters_played.length > 0 ? data.characters_played.join(' \u2192 ') : 'No characters'}
                           {' \u00b7 '}{data.total_deaths} death{data.total_deaths !== 1 ? 's' : ''}
+                          {(data.total_toad_times ?? 0) > 0 && (
+                            <>{' \u00b7 '}{data.total_toad_times} toad{data.total_toad_times !== 1 ? 's' : ''}</>
+                          )}
                         </span>
                       </div>
                     )

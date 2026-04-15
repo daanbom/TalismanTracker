@@ -15,6 +15,7 @@ export function computeLeaderboard(gamePlayers) {
         games_played: 0,
         wins: 0,
         total_deaths: 0,
+        total_toad_times: 0,
         character_counts: new Map(),
       })
     }
@@ -22,6 +23,7 @@ export function computeLeaderboard(gamePlayers) {
     row.games_played += 1
     if (gp.is_winner) row.wins += 1
     row.total_deaths += gp.total_deaths ?? 0
+    row.total_toad_times += gp.total_toad_times ?? 0
     for (const c of gp.characters_played ?? []) {
       row.character_counts.set(c, (row.character_counts.get(c) ?? 0) + 1)
     }
@@ -48,6 +50,8 @@ export function computeLeaderboard(gamePlayers) {
         win_rate: row.games_played > 0 ? (row.wins / row.games_played) * 100 : 0,
         total_deaths: row.total_deaths,
         avg_deaths: row.games_played > 0 ? row.total_deaths / row.games_played : 0,
+        total_toad_times: row.total_toad_times,
+        avg_toad_times: row.games_played > 0 ? row.total_toad_times / row.games_played : 0,
         most_played: mostPlayed,
       }
     })
@@ -61,6 +65,8 @@ export function computeLeaderboard(gamePlayers) {
       win_rate: (talismanWins / totalGames) * 100,
       total_deaths: 0,
       avg_deaths: 0,
+      total_toad_times: 0,
+      avg_toad_times: 0,
       most_played: '—',
     })
   }

@@ -19,8 +19,6 @@ const CATEGORY_LABELS = {
   most_strength: 'Most Strength (without bonus)',
   most_craft: 'Most Craft (without bonus)',
   most_life: 'Most Life',
-  most_deaths: 'Most Deaths',
-  most_toad_times: 'Most Times Turned Into Toad',
   longest_toad_streak: 'Longest Toad Streak (consecutive turns)',
   most_denizens_on_spot: 'Most Denizens on Spot',
 }
@@ -158,6 +156,9 @@ export default function GameDetail() {
                 </div>
                 <span className="text-muted text-sm font-body">
                   {gp.total_deaths} death{gp.total_deaths !== 1 ? 's' : ''}
+                  {(gp.total_toad_times ?? 0) > 0 && (
+                    <> &middot; {gp.total_toad_times} toad time{gp.total_toad_times !== 1 ? 's' : ''}</>
+                  )}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
