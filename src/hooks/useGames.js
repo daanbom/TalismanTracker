@@ -18,6 +18,7 @@ export function useGames() {
             id,
             characters_played,
             total_deaths,
+            total_toad_times,
             is_winner,
             winning_character,
             player:players ( id, name )
@@ -38,6 +39,7 @@ export function useGames() {
           player: gp.player,
           characters_played: gp.characters_played ?? [],
           total_deaths: gp.total_deaths,
+          total_toad_times: gp.total_toad_times ?? 0,
           is_winner: gp.is_winner,
           winning_character: gp.winning_character,
         })),

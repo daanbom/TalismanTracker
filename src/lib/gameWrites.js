@@ -3,13 +3,15 @@ import { supabase } from '../supabaseClient'
 export function buildGamePlayerRows(gameId, formState) {
   return formState.players.map((playerId) => {
     const pd = formState.playerData?.[playerId] ?? {}
+    const chars = pd.characters_played ?? []
     return {
       game_id: gameId,
       player_id: playerId,
-      characters_played: pd.characters_played ?? [],
+      characters_played: chars,
       total_deaths: Number(pd.total_deaths ?? 0),
+      total_toad_times: Number(pd.total_toad_times ?? 0),
       is_winner: !!pd.is_winner,
-      winning_character: pd.is_winner ? pd.winning_character ?? null : null,
+      winning_character: pd.is_winner && chars.length > 0 ? chars[chars.length - 1] : null,
     }
   })
 }

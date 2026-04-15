@@ -8,6 +8,8 @@ const COLUMNS = [
   { key: 'win_rate', label: 'Win %', align: 'center', format: v => `${v.toFixed(1)}%` },
   { key: 'total_deaths', label: 'Deaths', align: 'center' },
   { key: 'avg_deaths', label: 'Avg Deaths', align: 'center', format: v => v.toFixed(2) },
+  { key: 'total_toad_times', label: 'Toads', align: 'center' },
+  { key: 'avg_toad_times', label: 'Avg Toads', align: 'center', format: v => v.toFixed(2) },
   { key: 'most_played', label: 'Most Played', align: 'left' },
 ]
 
@@ -135,13 +137,21 @@ export default function Leaderboard() {
                 <span className="text-muted block text-xs">Deaths</span>
                 <span className="text-parchment/80">{player.total_deaths}</span>
               </div>
-              <div className="col-span-2">
-                <span className="text-muted block text-xs">Most Played</span>
-                <span className="text-parchment/80">{player.most_played}</span>
-              </div>
               <div>
                 <span className="text-muted block text-xs">Avg Deaths</span>
                 <span className="text-parchment/80">{player.avg_deaths.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-muted block text-xs">Toads</span>
+                <span className="text-parchment/80">{player.total_toad_times}</span>
+              </div>
+              <div>
+                <span className="text-muted block text-xs">Avg Toads</span>
+                <span className="text-parchment/80">{player.avg_toad_times.toFixed(2)}</span>
+              </div>
+              <div className="col-span-3">
+                <span className="text-muted block text-xs">Most Played</span>
+                <span className="text-parchment/80">{player.most_played}</span>
               </div>
             </div>
           </div>

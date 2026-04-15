@@ -12,6 +12,7 @@ export function useLeaderboardStats() {
           game_id,
           characters_played,
           total_deaths,
+          total_toad_times,
           is_winner,
           player:players ( id, name )
         `)
