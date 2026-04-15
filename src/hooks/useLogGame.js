@@ -9,9 +9,11 @@ export function useLogGame() {
       const { data: game, error: gErr } = await supabase
         .from('games')
         .insert({
+          title: formState.title.trim(),
           date: formState.date,
           ending_id: formState.ending_id,
           notes: formState.notes || null,
+          optional_expansions: formState.optional_expansions ?? [],
         })
         .select('id')
         .single()
@@ -30,6 +32,7 @@ export function useLogGame() {
       queryClient.invalidateQueries({ queryKey: ['games'] })
       queryClient.invalidateQueries({ queryKey: ['leaderboardStats'] })
       queryClient.invalidateQueries({ queryKey: ['highscoreRecords'] })
+      queryClient.invalidateQueries({ queryKey: ['stats'] })
     },
   })
 }

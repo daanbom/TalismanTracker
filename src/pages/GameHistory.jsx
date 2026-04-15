@@ -44,13 +44,16 @@ export default function GameHistory() {
               to={`/games/${game.id}`}
               className={`card-ornate block bg-surface border border-gold-dim/15 rounded-xl p-5 hover:border-gold-dim/30 hover:bg-surface/90 transition-all duration-200 group animate-fade-up delay-${i + 1}`}
             >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
-                <div className="flex items-center gap-3">
-                  <time className="text-sm font-body text-muted">{formatDate(game.date)}</time>
-                  <span className="text-gold-dim/40">|</span>
-                  <span className="text-sm font-heading text-parchment/80 tracking-wide">{game.ending.name}</span>
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="font-heading text-lg text-parchment tracking-wide truncate">{game.title}</h2>
+                  <div className="flex items-center gap-3 mt-1">
+                    <time className="text-xs font-body text-muted">{formatDate(game.date)}</time>
+                    <span className="text-gold-dim/40">|</span>
+                    <span className="text-xs font-heading text-parchment/70 tracking-wide">{game.ending.name}</span>
+                  </div>
                 </div>
-                <span className="text-xs font-body text-muted group-hover:text-gold/60 transition-colors">
+                <span className="text-xs font-body text-muted group-hover:text-gold/60 transition-colors shrink-0">
                   View details &rarr;
                 </span>
               </div>

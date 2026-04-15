@@ -10,8 +10,10 @@ export function useGame(id) {
         .from('games')
         .select(`
           id,
+          title,
           date,
           notes,
+          optional_expansions,
           created_at,
           updated_at,
           ending:endings ( id, name, expansion ),
@@ -34,6 +36,7 @@ export function useGame(id) {
             expansion,
             event_type,
             detail,
+            character,
             player:players ( id, name )
           )
         `)
@@ -42,8 +45,10 @@ export function useGame(id) {
       if (error) throw error
       return {
         id: data.id,
+        title: data.title,
         date: data.date,
         notes: data.notes,
+        optional_expansions: data.optional_expansions ?? [],
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         ending: data.ending,

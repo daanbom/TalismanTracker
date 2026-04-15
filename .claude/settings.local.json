@@ -34,11 +34,13 @@
       "Bash(npx supabase:*)",
       "Bash(rm:*)",
       "Bash(git checkout:*)",
-
       "Bash(git remote:*)",
       "Bash(gh pr create --title 'feat\\(highscores\\): most-deaths category and top-5 rankings' --body ':*)",
-      "Bash(git stash:*)"
-
+      "Bash(git stash:*)",
+      "Bash(git push:*)",
+      "Skill(pr)",
+      "Bash(git fetch:*)",
+      "Bash(git rm:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

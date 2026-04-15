@@ -18,17 +18,20 @@ const GAME_LEVEL_HIGHSCORES = new Set(['most_denizens_on_spot'])
 
 export function buildHighscoreRows(gameId, formState) {
   const rows = []
-  for (const [category, entry] of Object.entries(formState.highscores ?? {})) {
-    if (!entry) continue
-    if (entry.value === '' || entry.value == null) continue
+  for (const [category, entries] of Object.entries(formState.highscores ?? {})) {
+    if (!Array.isArray(entries)) continue
     const isGameLevel = GAME_LEVEL_HIGHSCORES.has(category)
-    if (!isGameLevel && !entry.player_id) continue
-    rows.push({
-      game_id: gameId,
-      player_id: isGameLevel ? null : entry.player_id,
-      category,
-      value: Number(entry.value),
-    })
+    for (const entry of entries) {
+      if (!entry) continue
+      if (entry.value === '' || entry.value == null) continue
+      if (!isGameLevel && !entry.player_id) continue
+      rows.push({
+        game_id: gameId,
+        player_id: isGameLevel ? null : entry.player_id,
+        category,
+        value: Number(entry.value),
+      })
+    }
   }
   return rows
 }
@@ -41,24 +44,33 @@ export function buildExpansionEventRows(gameId, formState) {
     const perPlayer = events[playerId]
     if (!perPlayer) continue
 
-    for (const path of perPlayer.woodland?.paths_completed ?? []) {
+    const playedChars = formState.playerData?.[playerId]?.characters_played ?? []
+    const fallbackChar = playedChars.length === 1 ? playedChars[0] : null
+
+    for (const entry of perPlayer.woodland?.paths_completed ?? []) {
+      const path = typeof entry === 'string' ? entry : entry?.path
       if (!path) continue
+      const character = (typeof entry === 'object' && entry?.character) || fallbackChar || null
       rows.push({
         game_id: gameId,
         player_id: playerId,
         expansion: 'woodland',
         event_type: 'path_completed',
         detail: path,
+        character,
       })
     }
 
-    if (perPlayer.dungeon?.beaten) {
+    const dungeon = perPlayer.dungeon
+    if (dungeon?.beaten) {
+      const character = dungeon.character || fallbackChar || null
       rows.push({
         game_id: gameId,
         player_id: playerId,
         expansion: 'dungeon',
         event_type: 'dungeon_beaten',
         detail: null,
+        character,
       })
     }
   }
