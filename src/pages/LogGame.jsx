@@ -742,7 +742,10 @@ export default function LogGame({ initialData, isEditing, gameId }) {
               className="btn-gold w-full"
               onClick={() => {
                 setStep1Attempted(true)
-                if (!step1HasErrors) setStep(2)
+                if (!step1HasErrors) {
+                  setStep(2)
+                  window.scrollTo({ top: 0, behavior: 'instant' })
+                }
               }}
             >
               Continue to Highscores &#8594;
@@ -981,7 +984,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
             <button
               type="button"
               className="btn-outline"
-              onClick={() => setStep(1)}
+              onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'instant' }) }}
             >
               &#8592; Back
             </button>
