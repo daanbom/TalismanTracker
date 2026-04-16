@@ -143,6 +143,7 @@ export function computeEndingStats(games) {
         times: 0,
         playerWins: 0,
         talismanWins: 0,
+        totalDeaths: 0,
         winningCharCounts: new Map(),
         deathTypeCounts: new Map(),
       })
@@ -165,6 +166,7 @@ export function computeEndingStats(games) {
     }
     for (const gp of game.players ?? []) {
       for (const d of gp.deaths ?? []) {
+        row.totalDeaths += 1
         const typeName = d.death_type?.name
         if (typeName) {
           row.deathTypeCounts.set(typeName, (row.deathTypeCounts.get(typeName) ?? 0) + 1)
@@ -199,6 +201,7 @@ export function computeEndingStats(games) {
       pctOfGames: totalGames > 0 ? row.times / totalGames : 0,
       playerWinRate: row.times > 0 ? row.playerWins / row.times : 0,
       talismanWinRate: row.times > 0 ? row.talismanWins / row.times : 0,
+      avgDeathsPerGame: row.times > 0 ? row.totalDeaths / row.times : 0,
       topWinningCharacter: topChar ? `${topChar} (${topCount})` : 'NA',
       topDeath: topDeathType ? `${topDeathType} (${topDeathCount})` : 'NA',
     }
@@ -249,6 +252,26 @@ export function computePlayerDeathBreakdown(games) {
   return Array.from(stats.values())
 }
 
+// Per-character death breakdown by type.
+export function computeCharacterDeathBreakdown(games) {
+  const stats = new Map()
+
+  for (const game of games) {
+    for (const gp of game.players ?? []) {
+      for (const d of gp.deaths ?? []) {
+        const character = d.character?.name ?? 'Unknown'
+        const deathType = d.death_type?.name ?? 'Unknown'
+        const key = `${character}::${deathType}`
+        const row = stats.get(key) ?? { character, deathType, count: 0 }
+        row.count += 1
+        stats.set(key, row)
+      }
+    }
+  }
+
+  return Array.from(stats.values())
+}
+
 // PVP kill leaderboard: who kills who.
 export function computePvpKillLeaderboard(games) {
   const stats = new Map()
@@ -277,9 +300,12 @@ export function computePvpKillLeaderboard(games) {
 // Events with no character attribution are grouped as "Unknown".
 export function computeExpansionEventStats(games) {
   const dungeons = new Map()     // character -> { character, count }
+  const dungeonsByPlayer = new Map() // playerName -> { playerName, count }
   const paths = new Map()        // `${character}::${path}` -> { character, path, count }
   const pathsTotals = new Map()  // character -> { character, count }
+  const pathsTotalsByPlayer = new Map() // playerName -> { playerName, count }
   const pathsByPath = new Map()  // path -> { path, count }
+  const pathsByPlayer = new Map() // `${playerName}::${path}` -> { playerName, path, count }
   let totalDungeons = 0
   let totalPaths = 0
 
@@ -290,6 +316,10 @@ export function computeExpansionEventStats(games) {
         const row = dungeons.get(character) ?? { character, count: 0 }
         row.count += 1
         dungeons.set(character, row)
+        const playerName = ev.player?.name ?? 'Unknown'
+        const playerRow = dungeonsByPlayer.get(playerName) ?? { playerName, count: 0 }
+        playerRow.count += 1
+        dungeonsByPlayer.set(playerName, playerRow)
         totalDungeons += 1
       } else if (ev.event_type === 'path_completed') {
         const path = ev.detail || 'NA'
@@ -300,9 +330,17 @@ export function computeExpansionEventStats(games) {
         const totalRow = pathsTotals.get(character) ?? { character, count: 0 }
         totalRow.count += 1
         pathsTotals.set(character, totalRow)
+        const playerName = ev.player?.name ?? 'Unknown'
+        const playerTotalRow = pathsTotalsByPlayer.get(playerName) ?? { playerName, count: 0 }
+        playerTotalRow.count += 1
+        pathsTotalsByPlayer.set(playerName, playerTotalRow)
         const pathRow = pathsByPath.get(path) ?? { path, count: 0 }
         pathRow.count += 1
         pathsByPath.set(path, pathRow)
+        const playerPathKey = `${playerName}::${path}`
+        const playerPathRow = pathsByPlayer.get(playerPathKey) ?? { playerName, path, count: 0 }
+        playerPathRow.count += 1
+        pathsByPlayer.set(playerPathKey, playerPathRow)
         totalPaths += 1
       }
     }
@@ -310,9 +348,12 @@ export function computeExpansionEventStats(games) {
 
   return {
     dungeons: Array.from(dungeons.values()),
+    dungeonsByPlayer: Array.from(dungeonsByPlayer.values()),
     paths: Array.from(paths.values()),
     pathsTotals: Array.from(pathsTotals.values()),
+    pathsTotalsByPlayer: Array.from(pathsTotalsByPlayer.values()),
     pathsByPath: Array.from(pathsByPath.values()),
+    pathsByPlayer: Array.from(pathsByPlayer.values()),
     totals: { dungeons: totalDungeons, paths: totalPaths },
   }
 }

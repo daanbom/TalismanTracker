@@ -14,11 +14,13 @@ export function useLeaderboardStats() {
             characters_played,
             total_toad_times,
             is_winner,
-            player:players ( id, name )
+            winning_character,
+            player:players ( id, name ),
+            game:games ( id, created_at )
           `),
         supabase
           .from('game_player_deaths')
-          .select('game_id, player_id, death_type:death_types(name)'),
+          .select('game_id, player_id, killed_by_player_id, death_type:death_types(name)'),
       ])
       if (gpResult.error) throw gpResult.error
       if (deathResult.error) throw deathResult.error
@@ -41,7 +43,7 @@ export function useLeaderboardStats() {
         ...gp,
         total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
       }))
-      return computeLeaderboard(data, deathTypesByPlayer)
+      return computeLeaderboard(data, deathTypesByPlayer, deathResult.data)
     },
   })
 }
