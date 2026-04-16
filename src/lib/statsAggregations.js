@@ -57,11 +57,13 @@ export function computeCharacterStats(games, allCharacters) {
   for (const game of games) {
     for (const gp of game.players ?? []) {
       const chars = gp.characters_played ?? []
-      const deaths = Math.min(gp.total_deaths ?? 0, chars.length)
-      chars.forEach((char, idx) => {
+      const deathCharNames = new Set(
+        (gp.deaths ?? []).map(d => d.character?.name).filter(Boolean),
+      )
+      chars.forEach((char) => {
         const row = ensure(char)
         row.games += 1
-        if (idx < deaths) row.deaths += 1
+        if (deathCharNames.has(char)) row.deaths += 1
       })
       if (gp.is_winner && gp.winning_character) {
         ensure(gp.winning_character).wins += 1
@@ -157,6 +159,71 @@ export function computeEndingStats(games) {
       topWinningCharacter: topChar ? `${topChar} (${topCount})` : 'NA',
     }
   })
+}
+
+// ── Deaths ─────────────────────────────────────────────────
+// Per death-type aggregation across all games.
+export function computeDeathTypeStats(games) {
+  const stats = new Map()
+  let total = 0
+
+  for (const game of games) {
+    for (const gp of game.players ?? []) {
+      for (const d of gp.deaths ?? []) {
+        const name = d.death_type?.name ?? 'Unknown'
+        const row = stats.get(name) ?? { deathType: name, count: 0 }
+        row.count += 1
+        stats.set(name, row)
+        total += 1
+      }
+    }
+  }
+
+  return Array.from(stats.values()).map((row) => ({
+    ...row,
+    pctOfAllDeaths: total > 0 ? row.count / total : 0,
+  }))
+}
+
+// Per-player death breakdown by type.
+export function computePlayerDeathBreakdown(games) {
+  const stats = new Map()
+
+  for (const game of games) {
+    for (const gp of game.players ?? []) {
+      const playerName = gp.player?.name ?? 'Unknown'
+      for (const d of gp.deaths ?? []) {
+        const deathType = d.death_type?.name ?? 'Unknown'
+        const key = `${playerName}::${deathType}`
+        const row = stats.get(key) ?? { playerName, deathType, count: 0 }
+        row.count += 1
+        stats.set(key, row)
+      }
+    }
+  }
+
+  return Array.from(stats.values())
+}
+
+// PVP kill leaderboard: who kills who.
+export function computePvpKillLeaderboard(games) {
+  const stats = new Map()
+
+  for (const game of games) {
+    for (const gp of game.players ?? []) {
+      for (const d of gp.deaths ?? []) {
+        if (!d.killed_by) continue
+        const killer = d.killed_by.name ?? 'Unknown'
+        const victim = gp.player?.name ?? 'Unknown'
+        const key = `${killer}::${victim}`
+        const row = stats.get(key) ?? { killer, victim, count: 0 }
+        row.count += 1
+        stats.set(key, row)
+      }
+    }
+  }
+
+  return Array.from(stats.values())
 }
 
 // ── Expansion events ────────────────────────────────────────

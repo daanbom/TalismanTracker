@@ -7,12 +7,16 @@ import {
   computeCharacterStats,
   computeEndingStats,
   computeExpansionEventStats,
+  computeDeathTypeStats,
+  computePlayerDeathBreakdown,
+  computePvpKillLeaderboard,
 } from '../lib/statsAggregations'
 
 const TABS = [
   { key: 'characters', label: 'Characters' },
   { key: 'endings', label: 'Endings' },
   { key: 'expansions', label: 'Expansions' },
+  { key: 'deaths', label: 'Deaths' },
 ]
 
 function SortIcon({ active, direction }) {
@@ -256,6 +260,83 @@ function ExpansionsTab({ games }) {
   )
 }
 
+function DeathsTab({ games }) {
+  const deathTypeSort = useSort('count', 'desc')
+  const playerBreakdownSort = useSort('count', 'desc')
+  const pvpSort = useSort('count', 'desc')
+
+  const deathTypeRows = useMemo(() => computeDeathTypeStats(games), [games])
+  const playerBreakdownRows = useMemo(() => computePlayerDeathBreakdown(games), [games])
+  const pvpRows = useMemo(() => computePvpKillLeaderboard(games), [games])
+
+  const totalDeaths = useMemo(
+    () => deathTypeRows.reduce((sum, r) => sum + r.count, 0),
+    [deathTypeRows],
+  )
+
+  const deathTypeColumns = [
+    { key: 'deathType', label: 'Death Type', align: 'left' },
+    { key: 'count', label: 'Count', align: 'center', accent: true },
+    { key: 'pctOfAllDeaths', label: '% of Deaths', align: 'center', format: pct },
+  ]
+
+  const playerBreakdownColumns = [
+    { key: 'playerName', label: 'Player', align: 'left' },
+    { key: 'deathType', label: 'Death Type', align: 'left' },
+    { key: 'count', label: 'Count', align: 'center', accent: true },
+  ]
+
+  const pvpColumns = [
+    { key: 'killer', label: 'Killer', align: 'left' },
+    { key: 'victim', label: 'Victim', align: 'left' },
+    { key: 'count', label: 'Kills', align: 'center', accent: true },
+  ]
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap gap-3">
+        <TotalCard label="Total Deaths" value={totalDeaths} />
+      </div>
+      <section>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Death Type Breakdown</h3>
+        <StatsTable
+          columns={deathTypeColumns}
+          rows={deathTypeRows}
+          sort={deathTypeSort.sort}
+          sortKey={deathTypeSort.sortKey}
+          sortDir={deathTypeSort.sortDir}
+          onSort={deathTypeSort.toggle}
+          emptyMessage="No death data yet."
+        />
+      </section>
+      <section>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Deaths per Player</h3>
+        <StatsTable
+          columns={playerBreakdownColumns}
+          rows={playerBreakdownRows}
+          sort={playerBreakdownSort.sort}
+          sortKey={playerBreakdownSort.sortKey}
+          sortDir={playerBreakdownSort.sortDir}
+          onSort={playerBreakdownSort.toggle}
+          emptyMessage="No death data yet."
+        />
+      </section>
+      <section>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">PVP Kill Leaderboard</h3>
+        <StatsTable
+          columns={pvpColumns}
+          rows={pvpRows}
+          sort={pvpSort.sort}
+          sortKey={pvpSort.sortKey}
+          sortDir={pvpSort.sortDir}
+          onSort={pvpSort.toggle}
+          emptyMessage="No PVP kills recorded yet."
+        />
+      </section>
+    </div>
+  )
+}
+
 export default function Stats() {
   const [tab, setTab] = useState('characters')
   const [optionalFilter, setOptionalFilter] = useState('all')
@@ -337,6 +418,7 @@ export default function Stats() {
           {tab === 'characters' && <CharactersTab games={games} allCharacters={allCharacters} />}
           {tab === 'endings' && <EndingsTab games={games} />}
           {tab === 'expansions' && <ExpansionsTab games={games} />}
+          {tab === 'deaths' && <DeathsTab games={games} />}
         </div>
       )}
     </div>
