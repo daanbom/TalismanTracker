@@ -49,6 +49,7 @@ export function computeCharacterStats(games, allCharacters) {
         games: 0,
         wins: 0,
         deaths: 0,
+        deathTypeCounts: new Map(),
       })
     }
     return stats.get(name)
@@ -57,13 +58,25 @@ export function computeCharacterStats(games, allCharacters) {
   for (const game of games) {
     for (const gp of game.players ?? []) {
       const chars = gp.characters_played ?? []
-      const deathCharNames = new Set(
-        (gp.deaths ?? []).map(d => d.character?.name).filter(Boolean),
-      )
+      const deathsByChar = new Map()
+      for (const d of gp.deaths ?? []) {
+        const charName = d.character?.name
+        if (charName) {
+          if (!deathsByChar.has(charName)) deathsByChar.set(charName, [])
+          deathsByChar.get(charName).push(d)
+        }
+      }
       chars.forEach((char) => {
         const row = ensure(char)
         row.games += 1
-        if (deathCharNames.has(char)) row.deaths += 1
+        const charDeaths = deathsByChar.get(char) ?? []
+        if (charDeaths.length > 0) row.deaths += 1
+        for (const d of charDeaths) {
+          const typeName = d.death_type?.name
+          if (typeName) {
+            row.deathTypeCounts.set(typeName, (row.deathTypeCounts.get(typeName) ?? 0) + 1)
+          }
+        }
       })
       if (gp.is_winner && gp.winning_character) {
         ensure(gp.winning_character).wins += 1
@@ -74,12 +87,23 @@ export function computeCharacterStats(games, allCharacters) {
   const expansionByName = new Map(
     (allCharacters ?? []).map((c) => [c.name, c.expansion]),
   )
-  const rows = Array.from(stats.values()).map((row) => ({
-    ...row,
-    expansion: expansionByName.get(row.character) ?? 'NA',
-    winRate: row.games > 0 ? row.wins / row.games : 0,
-    deathRate: row.games > 0 ? row.deaths / row.games : 0,
-  }))
+  const rows = Array.from(stats.values()).map((row) => {
+    let topDeath = 'NA'
+    let maxCount = 0
+    for (const [type, count] of row.deathTypeCounts) {
+      if (count > maxCount) {
+        maxCount = count
+        topDeath = `${type} (${count})`
+      }
+    }
+    return {
+      ...row,
+      expansion: expansionByName.get(row.character) ?? 'NA',
+      winRate: row.games > 0 ? row.wins / row.games : 0,
+      deathRate: row.games > 0 ? row.deaths / row.games : 0,
+      topDeath,
+    }
+  })
 
   // Characters that exist in seed but were never played get a zero row
   for (const c of allCharacters ?? []) {
@@ -92,6 +116,7 @@ export function computeCharacterStats(games, allCharacters) {
         deaths: 0,
         winRate: 0,
         deathRate: 0,
+        topDeath: 'NA',
       })
     }
   }
@@ -119,6 +144,7 @@ export function computeEndingStats(games) {
         playerWins: 0,
         talismanWins: 0,
         winningCharCounts: new Map(),
+        deathTypeCounts: new Map(),
       })
     }
     const row = stats.get(id)
@@ -137,6 +163,14 @@ export function computeEndingStats(games) {
     } else {
       row.talismanWins += 1
     }
+    for (const gp of game.players ?? []) {
+      for (const d of gp.deaths ?? []) {
+        const typeName = d.death_type?.name
+        if (typeName) {
+          row.deathTypeCounts.set(typeName, (row.deathTypeCounts.get(typeName) ?? 0) + 1)
+        }
+      }
+    }
   }
 
   return Array.from(stats.values()).map((row) => {
@@ -148,6 +182,15 @@ export function computeEndingStats(games) {
         topCount = count
       }
     }
+    let topDeathType = null
+    let topDeathCount = 0
+    for (const [type, count] of row.deathTypeCounts.entries()) {
+      if (count > topDeathCount) {
+        topDeathType = type
+        topDeathCount = count
+      }
+    }
+
     return {
       id: row.id,
       name: row.name,
@@ -157,6 +200,7 @@ export function computeEndingStats(games) {
       playerWinRate: row.times > 0 ? row.playerWins / row.times : 0,
       talismanWinRate: row.times > 0 ? row.talismanWins / row.times : 0,
       topWinningCharacter: topChar ? `${topChar} (${topCount})` : 'NA',
+      topDeath: topDeathType ? `${topDeathType} (${topDeathCount})` : 'NA',
     }
   })
 }

@@ -1,4 +1,4 @@
-export function computeLeaderboard(gamePlayers) {
+export function computeLeaderboard(gamePlayers, deathTypesByPlayer = new Map()) {
   const byPlayer = new Map()
   const gameHasWinner = new Map()
 
@@ -42,6 +42,18 @@ export function computeLeaderboard(gamePlayers) {
           mostPlayed = char
         }
       }
+      let topDeath = null
+      const typeCounts = deathTypesByPlayer.get(row.id)
+      if (typeCounts) {
+        let maxDeath = 0
+        for (const [type, count] of typeCounts) {
+          if (count > maxDeath) {
+            maxDeath = count
+            topDeath = `${type} (${count})`
+          }
+        }
+      }
+
       return {
         id: row.id,
         name: row.name,
@@ -53,6 +65,7 @@ export function computeLeaderboard(gamePlayers) {
         total_toad_times: row.total_toad_times,
         avg_toad_times: row.games_played > 0 ? row.total_toad_times / row.games_played : 0,
         most_played: mostPlayed,
+        top_death: topDeath ?? '—',
       }
     })
 
@@ -68,6 +81,7 @@ export function computeLeaderboard(gamePlayers) {
       total_toad_times: 0,
       avg_toad_times: 0,
       most_played: '—',
+      top_death: '—',
     })
   }
 

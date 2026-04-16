@@ -18,22 +18,30 @@ export function useLeaderboardStats() {
           `),
         supabase
           .from('game_player_deaths')
-          .select('game_id, player_id'),
+          .select('game_id, player_id, death_type:death_types(name)'),
       ])
       if (gpResult.error) throw gpResult.error
       if (deathResult.error) throw deathResult.error
 
       const deathCounts = new Map()
+      const deathTypesByPlayer = new Map()
       for (const d of deathResult.data) {
         const key = `${d.game_id}::${d.player_id}`
         deathCounts.set(key, (deathCounts.get(key) ?? 0) + 1)
+
+        const typeName = d.death_type?.name
+        if (typeName) {
+          const counts = deathTypesByPlayer.get(d.player_id) ?? new Map()
+          counts.set(typeName, (counts.get(typeName) ?? 0) + 1)
+          deathTypesByPlayer.set(d.player_id, counts)
+        }
       }
 
       const data = gpResult.data.map(gp => ({
         ...gp,
         total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
       }))
-      return computeLeaderboard(data)
+      return computeLeaderboard(data, deathTypesByPlayer)
     },
   })
 }

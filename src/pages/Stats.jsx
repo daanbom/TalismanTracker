@@ -110,6 +110,7 @@ function CharactersTab({ games, allCharacters }) {
     { key: 'winRate', label: 'Win %', align: 'center', format: pct, accent: true },
     { key: 'deaths', label: 'Deaths', align: 'center' },
     { key: 'deathRate', label: 'Death %', align: 'center', format: pct },
+    { key: 'topDeath', label: 'Top Death', align: 'left', sortable: false },
   ]
 
   return (
@@ -150,6 +151,7 @@ function EndingsTab({ games }) {
     { key: 'playerWinRate', label: 'Player Win %', align: 'center', format: pct, accent: true },
     { key: 'talismanWinRate', label: 'Talisman Win %', align: 'center', format: pct },
     { key: 'topWinningCharacter', label: 'Top Winner', align: 'left', sortable: false },
+    { key: 'topDeath', label: 'Top Death', align: 'left', sortable: false },
   ]
 
   return (

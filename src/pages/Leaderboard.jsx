@@ -11,6 +11,7 @@ const COLUMNS = [
   { key: 'total_toad_times', label: 'Toads', align: 'center' },
   { key: 'avg_toad_times', label: 'Avg Toads', align: 'center', format: v => v.toFixed(2) },
   { key: 'most_played', label: 'Most Played', align: 'left' },
+  { key: 'top_death', label: 'Top Death', align: 'left' },
 ]
 
 function SortIcon({ active, direction }) {
@@ -152,6 +153,10 @@ export default function Leaderboard() {
               <div className="col-span-3">
                 <span className="text-muted block text-xs">Most Played</span>
                 <span className="text-parchment/80">{player.most_played}</span>
+              </div>
+              <div className="col-span-3">
+                <span className="text-muted block text-xs">Top Death</span>
+                <span className="text-parchment/80">{player.top_death}</span>
               </div>
             </div>
           </div>
