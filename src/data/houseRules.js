@@ -1,3 +1,19 @@
+export const RULEBOOKS = [
+  { name: 'Base Game', url: 'https://cdn.1j1ju.com/medias/6b/ae/41-talisman-revised-4th-edition-rulebook.pdf' },
+  { name: 'The Reaper', url: 'https://cdn.1j1ju.com/medias/c8/40/47-talisman-the-reaper-rulebook.pdf' },
+  { name: 'The Frostmarch', url: 'https://www.talismanisland.com/rules.htm' },
+  { name: 'The Dragon', url: 'https://cdn.1j1ju.com/medias/37/48/a6-talisman-revised-4th-edition-the-dragon-rulebook.pdf' },
+  { name: 'The Woodland', url: 'https://cdn.1j1ju.com/medias/90/db/fc-talisman-revised-4th-edition-the-woodland-rulebook.pdf' },
+  { name: 'The City', url: 'https://cdn.1j1ju.com/medias/f0/bc/72-talisman-the-city-rulebook.pdf' },
+  { name: 'The Harbinger', url: 'https://cdn.1j1ju.com/medias/ee/a3/67-talisman-revised-4th-edition-the-harbinger-rulebook.pdf' },
+  { name: 'The Firelands', url: 'https://cdn.1j1ju.com/medias/81/08/d9-talisman-the-firelands-rulebook.pdf' },
+  { name: 'The Cataclysm', url: 'https://cdn.1j1ju.com/medias/4d/29/9e-talisman-revised-4th-edition-the-cataclysm-rulebook.pdf' },
+  { name: 'The Dungeon', url: 'https://cdn.1j1ju.com/medias/5b/5a/11-talisman-the-dungeon-rulebook.pdf' },
+  { name: 'The Sacred Pool', url: 'https://images-cdn.fantasyflightgames.com/ffg_content/Talisman/support/talisman-sacred-pool-rules.pdf' },
+  { name: 'The Blood Moon', url: 'https://cdn.1j1ju.com/medias/67/98/f0-talisman-revised-4th-edition-the-blood-moon-rulebook.pdf' },
+  { name: 'Lost Realms', url: 'https://images-cdn.fantasyflightgames.com/filer_public/03/39/03391605-ede2-4539-bc28-d51052bd71dc/tm14-rules.pdf' },
+]
+
 export const HOUSE_RULES = [
   {
     ruleset: 'Classic Talisman Houserules',

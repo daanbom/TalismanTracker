@@ -1,4 +1,4 @@
-import { HOUSE_RULES } from '../data/houseRules'
+import { HOUSE_RULES, RULEBOOKS } from '../data/houseRules'
 
 function RuleItem({ rule }) {
   if (typeof rule === 'string') {
@@ -176,6 +176,26 @@ export default function HouseRules() {
         <p className="text-muted text-sm font-body mt-3">
           Tweaks and clarifications the fellowship plays by. By Joep &amp; Daan.
         </p>
+      </div>
+
+      <div className="bg-surface border border-gold-dim/15 rounded-xl p-5 mb-10 animate-fade-up delay-1">
+        <h2 className="font-heading text-sm text-muted uppercase tracking-wider mb-3">
+          Rulebooks
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {RULEBOOKS.map((book) => (
+            <a
+              key={book.name}
+              href={book.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-parchment/70 hover:text-gold-light font-body text-sm transition-colors"
+            >
+              <span className="text-gold-dim text-xs">&#9670;</span>
+              {book.name}
+            </a>
+          ))}
+        </div>
       </div>
 
       <TableOfContents />
