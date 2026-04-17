@@ -43,7 +43,9 @@ npm run lint      # eslint
 
 ## Database
 
-Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players`, `game_highscores`, `game_expansion_events`. Full schema in `EDD.md`.
+Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players`, `game_highscores`, `game_expansion_events`, `icons` (seed, characters + Toad), `encounter_scores`, `tierlists`. Full schema in `EDD.md`.
+
+**Tierlists** are per-player and stored as a single JSONB column (`{S:[],A:[],B:[],C:[],D:[],F:[]}` of icon keys) on the `tierlists` table with a unique `player_id`. The Tierlist page (`/players/:id/tierlist`) sources characters from the `icons` table (so Toad is rankable) and filters dangling keys on load. Drag/drop uses HTML5 native DnD — no third-party library.
 
 Migrations live in `supabase/migrations/` and are applied via Supabase CLI. Seed data (characters, endings) is included in the initial migration.
 

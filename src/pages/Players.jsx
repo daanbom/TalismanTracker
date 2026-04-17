@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { usePlayers } from '../hooks/usePlayers'
 import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
 import { useAddPlayer } from '../hooks/useAddPlayer'
@@ -200,8 +201,16 @@ export default function Players() {
                   <p className="text-parchment/80">{player.total_deaths ?? 0}</p>
                 </div>
               </div>
-              <div className="mt-3 pt-3 border-t border-gold-dim/10 text-xs font-body text-muted">
-                Joined {new Date(player.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+              <div className="mt-3 pt-3 border-t border-gold-dim/10 flex items-center justify-between gap-2 text-xs font-body">
+                <span className="text-muted">
+                  Joined {new Date(player.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                </span>
+                <Link
+                  to={`/players/${player.id}/tierlist`}
+                  className="text-gold-dim hover:text-gold transition-colors tracking-wide"
+                >
+                  Tierlist &rarr;
+                </Link>
               </div>
             </div>
           ))}
