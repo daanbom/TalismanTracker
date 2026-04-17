@@ -45,7 +45,13 @@
       "Bash(git commit *)",
       "WebFetch(domain:talismantracker.netlify.app)",
       "Bash(grep -rn \"Stats\\\\|Characters\" src/pages/Stats*.jsx)",
-      "WebFetch(domain:cdn.1j1ju.com)"
+      "WebFetch(domain:cdn.1j1ju.com)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(gh pr *)",
+      "WebFetch(domain:docs.google.com)",
+      "WebFetch(domain:doc-0k-7k-docstext.googleusercontent.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

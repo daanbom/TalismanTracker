@@ -39,6 +39,8 @@ npm run lint      # eslint
 
 **Leaderboard stats** are computed client-side from raw `game_players` data for MVP. If performance becomes an issue, move aggregation to a Supabase SQL view.
 
+**Static content** (e.g. the House Rules page) lives in `src/data/` as plain JS constants and is imported directly by the page component. Use this for low-churn content where a DB round-trip isn't worth it; migrate to a table if the content starts changing frequently.
+
 ## Database
 
 Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players`, `game_highscores`, `game_expansion_events`. Full schema in `EDD.md`.
