@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { to: '/stats', label: 'Stats' },
   { to: '/counters', label: 'Counters' },
   { to: '/history', label: 'History' },
+  { to: '/house-rules', label: 'House Rules' },
   { to: '/players', label: 'Players' },
 ]
 
