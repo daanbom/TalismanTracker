@@ -161,6 +161,20 @@ export default function GameDetail() {
                   )}
                 </span>
               </div>
+              {(gp.deaths ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {gp.deaths.map((d, i) => (
+                    <span
+                      key={d.id ?? i}
+                      className="px-2.5 py-0.5 rounded-full text-xs font-body border border-danger/20 bg-danger/5 text-danger/80"
+                    >
+                      {d.character?.name && <>{d.character.name} &middot; </>}
+                      {d.death_type?.name ?? 'Unknown'}
+                      {d.killed_by && <> by {d.killed_by.name}</>}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {gp.characters_played.map((char, idx) => (
                   <span key={idx} className="inline-flex items-center gap-1.5">

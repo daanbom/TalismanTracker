@@ -8,7 +8,6 @@ export function buildGamePlayerRows(gameId, formState) {
       game_id: gameId,
       player_id: playerId,
       characters_played: chars,
-      total_deaths: Number(pd.total_deaths ?? 0),
       total_toad_times: Number(pd.total_toad_times ?? 0),
       is_winner: !!pd.is_winner,
       winning_character: pd.is_winner && chars.length > 0 ? chars[chars.length - 1] : null,
@@ -32,6 +31,24 @@ export function buildHighscoreRows(gameId, formState) {
         player_id: isGameLevel ? null : entry.player_id,
         category,
         value: Number(entry.value),
+      })
+    }
+  }
+  return rows
+}
+
+export function buildDeathRows(gameId, formState) {
+  const rows = []
+  for (const playerId of formState.players ?? []) {
+    const deaths = formState.playerData?.[playerId]?.deaths ?? []
+    for (const death of deaths) {
+      if (!death.death_type_id) continue
+      rows.push({
+        game_id: gameId,
+        player_id: playerId,
+        death_type_id: death.death_type_id,
+        character_id: death.character_id,
+        killed_by_player_id: death.killed_by_player_id || null,
       })
     }
   }
@@ -91,6 +108,12 @@ export async function insertChildRows(gameId, formState) {
     if (hErr) throw hErr
   }
 
+  const deathRows = buildDeathRows(gameId, formState)
+  if (deathRows.length > 0) {
+    const { error: dErr } = await supabase.from('game_player_deaths').insert(deathRows)
+    if (dErr) throw dErr
+  }
+
   const eventRows = buildExpansionEventRows(gameId, formState)
   if (eventRows.length > 0) {
     const { error: eErr } = await supabase.from('game_expansion_events').insert(eventRows)
@@ -99,7 +122,7 @@ export async function insertChildRows(gameId, formState) {
 }
 
 export async function deleteChildRows(gameId) {
-  const tables = ['game_players', 'game_highscores', 'game_expansion_events']
+  const tables = ['game_player_deaths', 'game_players', 'game_highscores', 'game_expansion_events']
   for (const table of tables) {
     const { error } = await supabase.from(table).delete().eq('game_id', gameId)
     if (error) throw error

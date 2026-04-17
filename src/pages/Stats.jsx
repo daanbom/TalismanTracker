@@ -7,12 +7,17 @@ import {
   computeCharacterStats,
   computeEndingStats,
   computeExpansionEventStats,
+  computeDeathTypeStats,
+  computePlayerDeathBreakdown,
+  computeCharacterDeathBreakdown,
+  computePvpKillLeaderboard,
 } from '../lib/statsAggregations'
 
 const TABS = [
   { key: 'characters', label: 'Characters' },
   { key: 'endings', label: 'Endings' },
   { key: 'expansions', label: 'Expansions' },
+  { key: 'deaths', label: 'Deaths' },
 ]
 
 function SortIcon({ active, direction }) {
@@ -39,14 +44,14 @@ function useSort(initialKey, initialDir = 'desc') {
   return { sortKey, sortDir, toggle, sort }
 }
 
-function StatsTable({ columns, rows, sort, sortKey, sortDir, onSort, emptyMessage }) {
+function StatsTable({ columns, rows, sort, sortKey, sortDir, onSort, emptyMessage, compact }) {
   const sorted = sort(rows)
   if (sorted.length === 0) {
     return <p className="text-muted text-sm font-body italic">{emptyMessage}</p>
   }
   return (
     <div className="bg-surface border border-gold-dim/15 rounded-xl overflow-hidden overflow-x-auto">
-      <table className="w-full min-w-[640px]">
+      <table className={`w-full ${compact ? '' : 'min-w-[640px]'}`}>
         <thead>
           <tr className="border-b border-gold-dim/20">
             {columns.map(col => (
@@ -106,6 +111,7 @@ function CharactersTab({ games, allCharacters }) {
     { key: 'winRate', label: 'Win %', align: 'center', format: pct, accent: true },
     { key: 'deaths', label: 'Deaths', align: 'center' },
     { key: 'deathRate', label: 'Death %', align: 'center', format: pct },
+    { key: 'topDeath', label: 'Top Death', align: 'left', sortable: false },
   ]
 
   return (
@@ -145,7 +151,9 @@ function EndingsTab({ games }) {
     { key: 'pctOfGames', label: '% Games', align: 'center', format: pct },
     { key: 'playerWinRate', label: 'Player Win %', align: 'center', format: pct, accent: true },
     { key: 'talismanWinRate', label: 'Talisman Win %', align: 'center', format: pct },
+    { key: 'avgDeathsPerGame', label: 'Avg Deaths / Game', align: 'center', format: v => v.toFixed(2) },
     { key: 'topWinningCharacter', label: 'Top Winner', align: 'left', sortable: false },
+    { key: 'topDeath', label: 'Top Death', align: 'left', sortable: false },
   ]
 
   return (
@@ -172,20 +180,57 @@ function TotalCard({ label, value }) {
 
 function ExpansionsTab({ games }) {
   const dungeonSort = useSort('count', 'desc')
+  const dungeonPlayerSort = useSort('count', 'desc')
   const pathTotalsSort = useSort('count', 'desc')
+  const pathTotalsPlayerSort = useSort('count', 'desc')
   const pathByPathSort = useSort('count', 'desc')
+  const pathPlayerSort = useSort('count', 'desc')
   const pathSort = useSort('count', 'desc')
-  const { dungeons, paths, pathsTotals, pathsByPath, totals } = useMemo(
+  const [pathPlayer, setPathPlayer] = useState('')
+  const [pathCharacter, setPathCharacter] = useState('')
+  const { dungeons, dungeonsByPlayer, paths, pathsTotals, pathsTotalsByPlayer, pathsByPath, pathsByPlayer, totals } = useMemo(
     () => computeExpansionEventStats(games),
     [games],
   )
+
+  const pathPlayerNames = useMemo(() => {
+    const set = new Set(pathsByPlayer.map(r => r.playerName))
+    return Array.from(set).sort()
+  }, [pathsByPlayer])
+
+  const pathCharacterNames = useMemo(() => {
+    const set = new Set(paths.map(r => r.character))
+    return Array.from(set).sort()
+  }, [paths])
+
+  const filteredPathsByPlayer = useMemo(() => {
+    if (!pathPlayer) {
+      return [...pathsByPlayer].sort((a, b) => b.count - a.count).slice(0, 5)
+    }
+    return pathsByPlayer.filter(r => r.playerName === pathPlayer)
+  }, [pathsByPlayer, pathPlayer])
+
+  const filteredPathsByCharacter = useMemo(() => {
+    if (!pathCharacter) {
+      return [...paths].sort((a, b) => b.count - a.count).slice(0, 5)
+    }
+    return paths.filter(r => r.character === pathCharacter)
+  }, [paths, pathCharacter])
 
   const dungeonColumns = [
     { key: 'character', label: 'Character', align: 'left' },
     { key: 'count', label: 'Dungeons Beaten', align: 'center', accent: true },
   ]
+  const dungeonPlayerColumns = [
+    { key: 'playerName', label: 'Player', align: 'left' },
+    { key: 'count', label: 'Dungeons Beaten', align: 'center', accent: true },
+  ]
   const pathTotalsColumns = [
     { key: 'character', label: 'Character', align: 'left' },
+    { key: 'count', label: 'Paths Completed', align: 'center', accent: true },
+  ]
+  const pathTotalsPlayerColumns = [
+    { key: 'playerName', label: 'Player', align: 'left' },
     { key: 'count', label: 'Paths Completed', align: 'center', accent: true },
   ]
   const pathByPathColumns = [
@@ -204,18 +249,62 @@ function ExpansionsTab({ games }) {
         <TotalCard label="Total Dungeons Beaten" value={totals.dungeons} />
         <TotalCard label="Total Woodland Clears" value={totals.paths} />
       </div>
-      <section>
-        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Dungeons Beaten</h3>
-        <StatsTable
-          columns={dungeonColumns}
-          rows={dungeons}
-          sort={dungeonSort.sort}
-          sortKey={dungeonSort.sortKey}
-          sortDir={dungeonSort.sortDir}
-          onSort={dungeonSort.toggle}
-          emptyMessage="No dungeons beaten in this filter."
-        />
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <section className="max-h-[480px] overflow-y-auto">
+          <h3 className="font-heading text-lg text-parchment tracking-wide mb-3 sticky top-0 bg-background z-10 pb-1">Dungeons Beaten per Character</h3>
+          <StatsTable
+            columns={dungeonColumns}
+            rows={dungeons}
+            sort={dungeonSort.sort}
+            sortKey={dungeonSort.sortKey}
+            sortDir={dungeonSort.sortDir}
+            onSort={dungeonSort.toggle}
+            emptyMessage="No dungeons beaten in this filter."
+            compact
+          />
+        </section>
+        <section>
+          <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Dungeons Beaten per Player</h3>
+          <StatsTable
+            columns={dungeonPlayerColumns}
+            rows={dungeonsByPlayer}
+            sort={dungeonPlayerSort.sort}
+            sortKey={dungeonPlayerSort.sortKey}
+            sortDir={dungeonPlayerSort.sortDir}
+            onSort={dungeonPlayerSort.toggle}
+            emptyMessage="No dungeons beaten in this filter."
+            compact
+          />
+        </section>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <section className="max-h-[480px] overflow-y-auto">
+          <h3 className="font-heading text-lg text-parchment tracking-wide mb-3 sticky top-0 bg-background z-10 pb-1">Total Paths per Character</h3>
+          <StatsTable
+            columns={pathTotalsColumns}
+            rows={pathsTotals}
+            sort={pathTotalsSort.sort}
+            sortKey={pathTotalsSort.sortKey}
+            sortDir={pathTotalsSort.sortDir}
+            onSort={pathTotalsSort.toggle}
+            emptyMessage="No paths completed in this filter."
+            compact
+          />
+        </section>
+        <section>
+          <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Total Paths per Player</h3>
+          <StatsTable
+            columns={pathTotalsPlayerColumns}
+            rows={pathsTotalsByPlayer}
+            sort={pathTotalsPlayerSort.sort}
+            sortKey={pathTotalsPlayerSort.sortKey}
+            sortDir={pathTotalsPlayerSort.sortDir}
+            onSort={pathTotalsPlayerSort.toggle}
+            emptyMessage="No paths completed in this filter."
+            compact
+          />
+        </section>
+      </div>
       <section>
         <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Total Paths by Path</h3>
         <StatsTable
@@ -226,30 +315,236 @@ function ExpansionsTab({ games }) {
           sortDir={pathByPathSort.sortDir}
           onSort={pathByPathSort.toggle}
           emptyMessage="No paths completed in this filter."
+          compact
         />
       </section>
       <section>
-        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Total Paths per Character</h3>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">
+          Woodland Paths per Player
+        </h3>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-xs font-body text-muted uppercase tracking-wider">Player</span>
+          <select
+            className="input-field text-sm py-1.5 w-auto"
+            value={pathPlayer}
+            onChange={e => setPathPlayer(e.target.value)}
+          >
+            <option value="">Top 5</option>
+            {pathPlayerNames.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>
         <StatsTable
-          columns={pathTotalsColumns}
-          rows={pathsTotals}
-          sort={pathTotalsSort.sort}
-          sortKey={pathTotalsSort.sortKey}
-          sortDir={pathTotalsSort.sortDir}
-          onSort={pathTotalsSort.toggle}
-          emptyMessage="No paths completed in this filter."
+          columns={[
+            ...(!pathPlayer ? [{ key: 'playerName', label: 'Player', align: 'left' }] : []),
+            { key: 'path', label: 'Path', align: 'left' },
+            { key: 'count', label: 'Completed', align: 'center', accent: true },
+          ]}
+          rows={filteredPathsByPlayer}
+          sort={pathPlayerSort.sort}
+          sortKey={pathPlayerSort.sortKey}
+          sortDir={pathPlayerSort.sortDir}
+          onSort={pathPlayerSort.toggle}
+          emptyMessage="No paths completed by this player."
+          compact
         />
       </section>
       <section>
-        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Woodland Paths Breakdown</h3>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">
+          Woodland Paths Breakdown
+        </h3>
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          <span className="text-xs font-body text-muted uppercase tracking-wider">Character</span>
+          <select
+            className="input-field text-sm py-1.5 w-auto"
+            value={pathCharacter}
+            onChange={e => setPathCharacter(e.target.value)}
+          >
+            <option value="">Top 5</option>
+            {pathCharacterNames.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>
         <StatsTable
           columns={pathColumns}
-          rows={paths}
+          rows={filteredPathsByCharacter}
           sort={pathSort.sort}
           sortKey={pathSort.sortKey}
           sortDir={pathSort.sortDir}
           onSort={pathSort.toggle}
-          emptyMessage="No paths completed in this filter."
+          emptyMessage="No paths completed by this character."
+        />
+      </section>
+    </div>
+  )
+}
+
+function DeathsTab({ games }) {
+  const deathTypeSort = useSort('count', 'desc')
+  const playerBreakdownSort = useSort('count', 'desc')
+  const playerFilterSort = useSort('count', 'desc')
+  const charFilterSort = useSort('count', 'desc')
+  const pvpSort = useSort('count', 'desc')
+  const [selectedPlayer, setSelectedPlayer] = useState('')
+  const [selectedCharacter, setSelectedCharacter] = useState('')
+
+  const deathTypeRows = useMemo(() => computeDeathTypeStats(games), [games])
+  const playerBreakdownRows = useMemo(() => computePlayerDeathBreakdown(games), [games])
+  const charBreakdownRows = useMemo(() => computeCharacterDeathBreakdown(games), [games])
+  const pvpRows = useMemo(() => computePvpKillLeaderboard(games), [games])
+
+  const totalDeaths = useMemo(
+    () => deathTypeRows.reduce((sum, r) => sum + r.count, 0),
+    [deathTypeRows],
+  )
+
+  const playerNames = useMemo(() => {
+    const set = new Set(playerBreakdownRows.map(r => r.playerName))
+    return Array.from(set).sort()
+  }, [playerBreakdownRows])
+
+  const playerFilteredRows = useMemo(() => {
+    const base = selectedPlayer
+      ? playerBreakdownRows.filter(r => r.playerName === selectedPlayer)
+      : [...playerBreakdownRows].sort((a, b) => b.count - a.count).slice(0, 5)
+    const playerTotal = base.reduce((sum, r) => sum + r.count, 0)
+    return base.map(r => ({
+      ...r,
+      pctOfPlayerDeaths: playerTotal > 0 ? r.count / playerTotal : 0,
+    }))
+  }, [playerBreakdownRows, selectedPlayer])
+
+  const characterNames = useMemo(() => {
+    const set = new Set(charBreakdownRows.map(r => r.character))
+    return Array.from(set).sort()
+  }, [charBreakdownRows])
+
+  const charFilteredRows = useMemo(() => {
+    const base = selectedCharacter
+      ? charBreakdownRows.filter(r => r.character === selectedCharacter)
+      : [...charBreakdownRows].sort((a, b) => b.count - a.count).slice(0, 5)
+    const charTotal = base.reduce((sum, r) => sum + r.count, 0)
+    return base.map(r => ({
+      ...r,
+      pctOfCharDeaths: charTotal > 0 ? r.count / charTotal : 0,
+    }))
+  }, [charBreakdownRows, selectedCharacter])
+
+  const deathTypeColumns = [
+    { key: 'deathType', label: 'Death Type', align: 'left' },
+    { key: 'count', label: 'Count', align: 'center', accent: true },
+    { key: 'pctOfAllDeaths', label: '% of Deaths', align: 'center', format: pct },
+  ]
+
+  const playerBreakdownColumns = [
+    { key: 'playerName', label: 'Player', align: 'left' },
+    { key: 'deathType', label: 'Death Type', align: 'left' },
+    { key: 'count', label: 'Count', align: 'center', accent: true },
+  ]
+
+  const pvpColumns = [
+    { key: 'killer', label: 'Killer', align: 'left' },
+    { key: 'victim', label: 'Victim', align: 'left' },
+    { key: 'count', label: 'Kills', align: 'center', accent: true },
+  ]
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap gap-3">
+        <TotalCard label="Total Deaths" value={totalDeaths} />
+      </div>
+      <section>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Death Type Breakdown</h3>
+        <StatsTable
+          columns={deathTypeColumns}
+          rows={deathTypeRows}
+          sort={deathTypeSort.sort}
+          sortKey={deathTypeSort.sortKey}
+          sortDir={deathTypeSort.sortDir}
+          onSort={deathTypeSort.toggle}
+          emptyMessage="No death data yet."
+        />
+      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <section>
+          <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Character Death Types</h3>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="text-xs font-body text-muted uppercase tracking-wider">Character</span>
+            <select
+              className="input-field text-sm py-1.5 w-auto"
+              value={selectedCharacter}
+              onChange={e => setSelectedCharacter(e.target.value)}
+            >
+              <option value="">Top 5</option>
+              {characterNames.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+          <StatsTable
+            columns={[
+              ...(!selectedCharacter ? [{ key: 'character', label: 'Character', align: 'left' }] : []),
+              { key: 'deathType', label: 'Death Type', align: 'left' },
+              { key: 'count', label: 'Count', align: 'center', accent: true },
+              { key: 'pctOfCharDeaths', label: '% of Deaths', align: 'center', format: pct },
+            ]}
+            rows={charFilteredRows}
+            sort={charFilterSort.sort}
+            sortKey={charFilterSort.sortKey}
+            sortDir={charFilterSort.sortDir}
+            onSort={charFilterSort.toggle}
+            emptyMessage="No deaths recorded for this character."
+            compact
+          />
+        </section>
+        <section>
+          <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Player Death Types</h3>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <span className="text-xs font-body text-muted uppercase tracking-wider">Player</span>
+            <select
+              className="input-field text-sm py-1.5 w-auto"
+              value={selectedPlayer}
+              onChange={e => setSelectedPlayer(e.target.value)}
+            >
+              <option value="">Top 5</option>
+              {playerNames.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+          <StatsTable
+            columns={[
+              ...(!selectedPlayer ? [{ key: 'playerName', label: 'Player', align: 'left' }] : []),
+              { key: 'deathType', label: 'Death Type', align: 'left' },
+              { key: 'count', label: 'Count', align: 'center', accent: true },
+              { key: 'pctOfPlayerDeaths', label: '% of Deaths', align: 'center', format: pct },
+            ]}
+            rows={playerFilteredRows}
+            sort={playerFilterSort.sort}
+            sortKey={playerFilterSort.sortKey}
+            sortDir={playerFilterSort.sortDir}
+            onSort={playerFilterSort.toggle}
+            emptyMessage="No deaths recorded for this player."
+            compact
+          />
+        </section>
+      </div>
+      <section>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">PVP Kill Leaderboard</h3>
+        <StatsTable
+          columns={pvpColumns}
+          rows={pvpRows}
+          sort={pvpSort.sort}
+          sortKey={pvpSort.sortKey}
+          sortDir={pvpSort.sortDir}
+          onSort={pvpSort.toggle}
+          emptyMessage="No PVP kills recorded yet."
+        />
+      </section>
+      <section>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Deaths per Player</h3>
+        <StatsTable
+          columns={playerBreakdownColumns}
+          rows={playerBreakdownRows}
+          sort={playerBreakdownSort.sort}
+          sortKey={playerBreakdownSort.sortKey}
+          sortDir={playerBreakdownSort.sortDir}
+          onSort={playerBreakdownSort.toggle}
+          emptyMessage="No death data yet."
         />
       </section>
     </div>
@@ -269,7 +564,7 @@ export default function Stats() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6 animate-fade-up">
+      <div className="mb-6 animate-fade-up text-center">
         <h1 className="font-heading text-3xl text-parchment tracking-wide">Stats</h1>
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
@@ -337,6 +632,7 @@ export default function Stats() {
           {tab === 'characters' && <CharactersTab games={games} allCharacters={allCharacters} />}
           {tab === 'endings' && <EndingsTab games={games} />}
           {tab === 'expansions' && <ExpansionsTab games={games} />}
+          {tab === 'deaths' && <DeathsTab games={games} />}
         </div>
       )}
     </div>

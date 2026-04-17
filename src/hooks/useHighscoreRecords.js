@@ -24,7 +24,7 @@ export function useHighscoreRecords() {
   return useQuery({
     queryKey: ['highscoreRecords'],
     queryFn: async () => {
-      const [hsResult, gpResult] = await Promise.all([
+      const [hsResult, gpResult, deathResult] = await Promise.all([
         supabase
           .from('game_highscores')
           .select(`
@@ -36,15 +36,30 @@ export function useHighscoreRecords() {
         supabase
           .from('game_players')
           .select(`
-            total_deaths,
+            game_id,
             total_toad_times,
             player:players ( id, name ),
             game:games ( id, date )
           `),
+        supabase
+          .from('game_player_deaths')
+          .select('game_id, player_id'),
       ])
 
       if (hsResult.error) throw hsResult.error
       if (gpResult.error) throw gpResult.error
+      if (deathResult.error) throw deathResult.error
+
+      const deathCounts = new Map()
+      for (const d of deathResult.data) {
+        const key = `${d.game_id}::${d.player_id}`
+        deathCounts.set(key, (deathCounts.get(key) ?? 0) + 1)
+      }
+
+      gpResult.data = gpResult.data.map(gp => ({
+        ...gp,
+        total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
+      }))
 
       const topByCategory = new Map()
       for (const row of hsResult.data) {
