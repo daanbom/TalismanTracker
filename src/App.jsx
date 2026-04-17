@@ -10,6 +10,7 @@ import GameHistory from './pages/GameHistory'
 import GameDetail from './pages/GameDetail'
 import Players from './pages/Players'
 import Stats from './pages/Stats'
+import Counters from './pages/Counters'
 
 const queryClient = new QueryClient()
 
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="/games/:id" element={<GameDetail />} />
             <Route path="/players" element={<Players />} />
             <Route path="/stats" element={<Stats />} />
+            <Route path="/counters" element={<Counters />} />
           </Routes>
         </Layout>
       </BrowserRouter>
