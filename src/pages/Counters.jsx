@@ -27,9 +27,18 @@ function ScoreButton({ label, onClick, disabled }) {
   )
 }
 
-function ScoreSide({ label, value, onIncrement, onDecrement, isPending }) {
+function Crown() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="w-5 h-5 fill-gold drop-shadow-[0_0_4px_rgba(212,175,55,0.6)]">
+      <path d="M3 18l2-9 5 5 2-9 2 9 5-5 2 9H3z" />
+    </svg>
+  )
+}
+
+function ScoreSide({ label, value, onIncrement, onDecrement, isPending, isWinning }) {
   return (
     <div className="flex flex-col items-center gap-3">
+      <div className="h-5">{isWinning && <Crown />}</div>
       <span className="text-xs font-body text-muted uppercase tracking-wider">{label}</span>
       <span className="font-display text-5xl text-gold tracking-wider tabular-nums">{value}</span>
       <div className="flex gap-2">
@@ -60,6 +69,7 @@ function EncounterCard({ encounter, score, onUpdate, isPending }) {
           onIncrement={() => onUpdate(encounter.name, 'creature_wins', 1)}
           onDecrement={() => onUpdate(encounter.name, 'creature_wins', -1)}
           isPending={isPending}
+          isWinning={creatureWins > playerWins}
         />
 
         <div className="flex flex-col items-center gap-1 select-none">
@@ -72,6 +82,7 @@ function EncounterCard({ encounter, score, onUpdate, isPending }) {
           onIncrement={() => onUpdate(encounter.name, 'player_wins', 1)}
           onDecrement={() => onUpdate(encounter.name, 'player_wins', -1)}
           isPending={isPending}
+          isWinning={playerWins > creatureWins}
         />
       </div>
     </div>
