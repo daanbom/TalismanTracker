@@ -1,208 +1,90 @@
-import { HOUSE_RULES, RULEBOOKS } from '../data/houseRules'
+import { Link } from 'react-router-dom'
 
-function RuleItem({ rule }) {
-  if (typeof rule === 'string') {
-    return (
-      <li className="flex gap-3 text-parchment/85 font-body text-sm leading-relaxed">
-        <span className="text-gold-dim flex-shrink-0 mt-1.5 text-xs">&#9670;</span>
-        <span>{rule}</span>
-      </li>
-    )
-  }
-
+function ScrollIcon() {
   return (
-    <li className="flex flex-col gap-2">
-      <div className="flex gap-3 text-parchment/85 font-body text-sm leading-relaxed">
-        <span className="text-gold-dim flex-shrink-0 mt-1.5 text-xs">&#9670;</span>
-        <span>{rule.text}</span>
-      </div>
-      {rule.subrules?.length > 0 && (
-        <ul className="ml-6 space-y-1.5">
-          {rule.subrules.map((sub, i) => (
-            <li
-              key={i}
-              className="flex gap-3 text-parchment/70 font-body text-sm leading-relaxed"
-            >
-              <span className="text-gold-dim/60 flex-shrink-0 mt-1.5 text-xs">&#9642;</span>
-              <span>{sub}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-    </li>
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 3h11a3 3 0 0 1 3 3v12a3 3 0 0 0 3 3H9a3 3 0 0 1-3-3V3z" />
+      <path d="M6 3a3 3 0 0 0-3 3v0a3 3 0 0 0 3 3" />
+      <path d="M9 8h8M9 12h8M9 16h5" />
+    </svg>
   )
 }
 
-function RulesTable({ table }) {
+function BookIcon() {
   return (
-    <div className="mt-3">
-      {table.title && (
-        <h5 className="font-heading text-sm text-gold/80 tracking-wide mb-2">
-          {table.title}
-        </h5>
-      )}
-      <div className="border border-gold-dim/15 rounded-lg overflow-hidden">
-        <table className="w-full text-sm font-body">
-          <thead className="bg-elevated/60">
-            <tr>
-              {table.headers.map((h, i) => (
-                <th
-                  key={i}
-                  className="text-left px-4 py-2 text-muted uppercase tracking-wider text-xs font-heading"
-                >
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {table.rows.map((row, ri) => (
-              <tr key={ri} className="border-t border-gold-dim/10">
-                {row.map((cell, ci) => (
-                  <td
-                    key={ci}
-                    className={`px-4 py-2 ${
-                      ci === 0 ? 'text-parchment/90' : 'text-parchment/80'
-                    }`}
-                  >
-                    {cell}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 4h7a3 3 0 0 1 3 3v14a2 2 0 0 0-2-2H4V4z" />
+      <path d="M20 4h-7a3 3 0 0 0-3 3v14a2 2 0 0 1 2-2h8V4z" />
+      <path d="M7 9h3M7 12h3M14 9h3M14 12h3" />
+    </svg>
   )
 }
 
-function TopicCard({ topic }) {
-  return (
-    <div className="bg-surface border border-gold-dim/15 rounded-xl p-5 sm:p-6">
-      <h4 className="font-heading text-lg text-gold tracking-wide mb-3">
-        {topic.name}
-      </h4>
-
-      {topic.intro && (
-        <p className="text-parchment/85 font-body text-sm leading-relaxed mb-3">
-          {topic.intro}
-        </p>
-      )}
-
-      {topic.tables?.map((table, i) => <RulesTable key={i} table={table} />)}
-
-      {topic.rules?.length > 0 && (
-        <ul className={`space-y-2 ${topic.tables?.length ? 'mt-4' : ''}`}>
-          {topic.rules.map((rule, i) => (
-            <RuleItem key={i} rule={rule} />
-          ))}
-        </ul>
-      )}
-    </div>
-  )
-}
-
-function SectionBlock({ section }) {
-  return (
-    <section id={section.slug} className="mb-10 last:mb-0 scroll-mt-20">
-      <div className="mb-5">
-        <h3 className="font-heading text-xl text-parchment tracking-wide">
-          {section.name}
-        </h3>
-        <div className="h-px bg-gradient-to-r from-gold-dim/40 via-gold-dim/10 to-transparent mt-2" />
-      </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {section.topics.map((topic) => (
-          <TopicCard key={topic.name} topic={topic} />
-        ))}
-      </div>
-    </section>
-  )
-}
-
-function RulesetBlock({ ruleset }) {
-  return (
-    <div className="mb-16 last:mb-0">
-      <h2 className="font-display text-2xl sm:text-3xl text-gold tracking-wider mb-8 text-center">
-        {ruleset.ruleset}
-      </h2>
-      {ruleset.sections.map((section) => (
-        <SectionBlock key={section.slug} section={section} />
-      ))}
-    </div>
-  )
-}
-
-function TableOfContents() {
-  return (
-    <nav className="bg-surface border border-gold-dim/15 rounded-xl p-5 mb-10 animate-fade-up delay-1">
-      <h2 className="font-heading text-sm text-muted uppercase tracking-wider mb-3">
-        Contents
-      </h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-        {HOUSE_RULES.map((ruleset) => (
-          <div key={ruleset.slug}>
-            <p className="font-heading text-sm text-gold/80 tracking-wide mb-2">
-              {ruleset.ruleset}
-            </p>
-            <ul className="space-y-1">
-              {ruleset.sections.map((section) => (
-                <li key={section.slug}>
-                  <a
-                    href={`#${section.slug}`}
-                    className="text-parchment/70 hover:text-gold-light font-body text-sm transition-colors"
-                  >
-                    {section.name}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-    </nav>
-  )
-}
+const TILES = [
+  {
+    to: '/house-rules/rules',
+    title: 'The House Rules',
+    desc: 'Tweaks and clarifications the fellowship plays by',
+    Icon: ScrollIcon,
+  },
+  {
+    to: '/house-rules/rulebooks',
+    title: 'Rulebooks',
+    desc: 'Official rulebooks for the base game and expansions',
+    Icon: BookIcon,
+  },
+]
 
 export default function HouseRules() {
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8 animate-fade-up text-center">
-        <h1 className="font-heading text-3xl text-parchment tracking-wide">House Rules</h1>
-        <div className="ornament-divider mt-3">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className="mb-12 animate-fade-up text-center">
+        <h1 className="font-display text-4xl sm:text-5xl text-gold tracking-wider">
+          House Rules
+        </h1>
+        <div className="ornament-divider mt-4">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">
-          Tweaks and clarifications the fellowship plays by. By Joep &amp; Daan.
+        <p className="text-muted font-body mt-4 max-w-md mx-auto">
+          The fellowship's canon and the books that came before it.
         </p>
       </div>
 
-      <div className="bg-surface border border-gold-dim/15 rounded-xl p-5 mb-10 animate-fade-up delay-1">
-        <h2 className="font-heading text-sm text-muted uppercase tracking-wider mb-3">
-          Rulebooks
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {RULEBOOKS.map((book) => (
-            <a
-              key={book.name}
-              href={book.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 text-parchment/70 hover:text-gold-light font-body text-sm transition-colors"
-            >
-              <span className="text-gold-dim text-xs">&#9670;</span>
-              {book.name}
-            </a>
-          ))}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
+        {TILES.map((tile, i) => (
+          <Link
+            key={tile.to}
+            to={tile.to}
+            className={`card-ornate group bg-surface border border-gold-dim/15 rounded-xl p-8 sm:p-10 hover:border-gold-dim/40 hover:bg-surface transition-all duration-300 hover:-translate-y-1 animate-fade-up delay-${i + 2} flex flex-col items-center text-center`}
+          >
+            <div className="text-gold/70 group-hover:text-gold transition-colors mb-5">
+              <tile.Icon />
+            </div>
+            <h2 className="font-heading text-xl sm:text-2xl text-parchment tracking-wide mb-2">
+              {tile.title}
+            </h2>
+            <p className="text-muted text-sm font-body">{tile.desc}</p>
+          </Link>
+        ))}
       </div>
-
-      <TableOfContents />
-
-      {HOUSE_RULES.map((ruleset) => (
-        <RulesetBlock key={ruleset.slug} ruleset={ruleset} />
-      ))}
     </div>
   )
 }

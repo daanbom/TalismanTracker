@@ -41,6 +41,8 @@ npm run lint      # eslint
 
 **Static content** (e.g. the House Rules page) lives in `src/data/` as plain JS constants and is imported directly by the page component. Use this for low-churn content where a DB round-trip isn't worth it; migrate to a table if the content starts changing frequently.
 
+**House Rules** is a chooser landing at `/house-rules` with two sub-pages: `/house-rules/rules` (the fellowship's house-rules text, from `HOUSE_RULES` in `src/data/houseRules.js`) and `/house-rules/rulebooks` (official PDFs grouped by core/corner/small, from `RULEBOOKS` in the same file). Each rulebook entry carries `slug`, `subtitle`, `type` (`pdf`/`web`), `group`, and `icon` — the icon key maps to an inline SVG defined in `Rulebooks.jsx`.
+
 ## Database
 
 Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players`, `game_highscores`, `game_expansion_events`, `icons` (seed, characters + Toad), `encounter_scores`, `tierlists`. Full schema in `EDD.md`.

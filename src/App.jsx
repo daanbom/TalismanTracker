@@ -12,6 +12,8 @@ import Players from './pages/Players'
 import Stats from './pages/Stats'
 import Counters from './pages/Counters'
 import HouseRules from './pages/HouseRules'
+import HouseRulesContent from './pages/HouseRulesContent'
+import Rulebooks from './pages/Rulebooks'
 import Tierlist from './pages/Tierlist'
 
 const queryClient = new QueryClient()
@@ -34,6 +36,8 @@ export default function App() {
             <Route path="/stats" element={<Stats />} />
             <Route path="/counters" element={<Counters />} />
             <Route path="/house-rules" element={<HouseRules />} />
+            <Route path="/house-rules/rules" element={<HouseRulesContent />} />
+            <Route path="/house-rules/rulebooks" element={<Rulebooks />} />
           </Routes>
         </Layout>
       </BrowserRouter>
