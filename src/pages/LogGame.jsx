@@ -7,6 +7,7 @@ import { useAddPlayer } from '../hooks/useAddPlayer'
 import { useLogGame } from '../hooks/useLogGame'
 import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
+import { useDeathTypes } from '../hooks/useDeathTypes'
 
 const HIGHSCORE_CATEGORIES = [
   { key: 'most_gold', label: 'Most Gold' },
@@ -16,8 +17,6 @@ const HIGHSCORE_CATEGORIES = [
   { key: 'most_strength', label: 'Most Strength' },
   { key: 'most_craft', label: 'Most Craft' },
   { key: 'most_life', label: 'Most Life' },
-  { key: 'most_deaths', label: 'Most Deaths' },
-  { key: 'most_toad_times', label: 'Most Times Turned Into Toad' },
   { key: 'longest_toad_streak', label: 'Longest Toad Streak' },
   { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot', gameLevel: true },
 ]
@@ -104,6 +103,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
   const { data: allPlayers = [] } = usePlayers()
   const { data: allCharacters = [] } = useCharacters()
   const { data: allEndings = [] } = useEndings()
+  const { data: allDeathTypes = [] } = useDeathTypes()
   const addPlayer = useAddPlayer()
   const logGame = useLogGame()
   const updateGame = useUpdateGame()
@@ -120,7 +120,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
       const playerData = { ...prev.playerData }
       const expansionEvents = { ...prev.expansionEvents }
       if (!exists) {
-        playerData[playerId] = { characters_played: [], total_deaths: 0, is_winner: false, winning_character: null }
+        playerData[playerId] = { characters_played: [], deaths: [], total_toad_times: 0, is_winner: false }
         expansionEvents[playerId] = emptyPlayerEvents()
       } else {
         delete playerData[playerId]
@@ -144,19 +144,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
     setForm(prev => {
       const current = prev.playerData[playerId]
       if (!current) return prev
-      const nextIsWinner = !current.is_winner
-      const chars = current.characters_played
       return {
         ...prev,
         playerData: {
           ...prev.playerData,
-          [playerId]: {
-            ...current,
-            is_winner: nextIsWinner,
-            winning_character: nextIsWinner
-              ? (current.winning_character || (chars.length > 0 ? chars[chars.length - 1] : null))
-              : null,
-          },
+          [playerId]: { ...current, is_winner: !current.is_winner },
         },
       }
     })
@@ -176,6 +168,57 @@ export default function LogGame({ initialData, isEditing, gameId }) {
       'characters_played',
       form.playerData[playerId].characters_played.filter((_, i) => i !== idx),
     )
+  }
+
+  const pvpDeathTypeId = allDeathTypes.find(dt => dt.name === 'PVP')?.id
+
+  const addDeath = (playerId) => {
+    setForm(prev => {
+      const chars = prev.playerData[playerId]?.characters_played ?? []
+      const autoCharId = chars.length === 1
+        ? allCharacters.find(c => c.name === chars[0])?.id ?? ''
+        : ''
+      return {
+        ...prev,
+        playerData: {
+          ...prev.playerData,
+          [playerId]: {
+            ...prev.playerData[playerId],
+            deaths: [...(prev.playerData[playerId]?.deaths ?? []), { death_type_id: '', character_id: autoCharId, killed_by_player_id: null }],
+          },
+        },
+      }
+    })
+  }
+
+  const updateDeath = (playerId, idx, field, value) => {
+    setForm(prev => {
+      const deaths = [...(prev.playerData[playerId]?.deaths ?? [])]
+      deaths[idx] = { ...deaths[idx], [field]: value }
+      if (field === 'death_type_id' && value !== pvpDeathTypeId) {
+        deaths[idx].killed_by_player_id = null
+      }
+      return {
+        ...prev,
+        playerData: {
+          ...prev.playerData,
+          [playerId]: { ...prev.playerData[playerId], deaths },
+        },
+      }
+    })
+  }
+
+  const removeDeath = (playerId, idx) => {
+    setForm(prev => ({
+      ...prev,
+      playerData: {
+        ...prev.playerData,
+        [playerId]: {
+          ...prev.playerData[playerId],
+          deaths: (prev.playerData[playerId]?.deaths ?? []).filter((_, i) => i !== idx),
+        },
+      },
+    }))
   }
 
   const addHighscoreEntry = (category) => {
@@ -296,7 +339,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
   const handleAddPlayerInline = () => {
     const name = newPlayerName.trim()
     if (!name) return
-    addPlayer.mutate(name, {
+    addPlayer.mutate({ name }, {
       onSuccess: (created) => {
         setShowAddPlayer(false)
         setNewPlayerName('')
@@ -313,8 +356,31 @@ export default function LogGame({ initialData, isEditing, gameId }) {
     if (!pd) return false
     const n = pd.characters_played?.length ?? 0
     if (n === 0) return false
-    const d = Number(pd.total_deaths ?? 0)
+    const d = pd.deaths?.length ?? 0
     return d !== n && d !== n - 1
+  })
+  const playersWithIncompleteDeaths = form.players.filter(id => {
+    const pd = form.playerData[id]
+    if (!pd) return false
+    return (pd.deaths ?? []).some(d =>
+      !d.death_type_id || !d.character_id || (d.death_type_id === pvpDeathTypeId && !d.killed_by_player_id),
+    )
+  })
+  const playersWithOverkilledChars = form.players.filter(id => {
+    const pd = form.playerData[id]
+    if (!pd) return false
+    const chars = pd.characters_played ?? []
+    const deaths = pd.deaths ?? []
+    const playCounts = {}
+    for (const name of chars) {
+      const charId = allCharacters.find(c => c.name === name)?.id
+      if (charId) playCounts[charId] = (playCounts[charId] ?? 0) + 1
+    }
+    const deathCounts = {}
+    for (const d of deaths) {
+      if (d.character_id) deathCounts[d.character_id] = (deathCounts[d.character_id] ?? 0) + 1
+    }
+    return Object.entries(deathCounts).some(([charId, count]) => count > (playCounts[charId] ?? 0))
   })
   const step1Errors = {
     title: !form.title?.trim()
@@ -330,7 +396,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
       : null,
     deaths: playersWithInvalidDeaths.length > 0
       ? 'Total deaths must equal characters played or one less'
-      : null,
+      : playersWithIncompleteDeaths.length > 0
+        ? 'Every death must have a type and character, and PVP deaths need a killer'
+        : playersWithOverkilledChars.length > 0
+          ? 'A character can\'t die more times than it was played'
+          : null,
   }
   const step1HasErrors = Object.values(step1Errors).some(Boolean)
 
@@ -401,7 +471,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6 animate-fade-up">
+      <div className="mb-6 animate-fade-up text-center">
         <h1 className="font-heading text-3xl text-parchment tracking-wide">
           {isEditing ? 'Edit Game' : 'Log a Game'}
         </h1>
@@ -635,39 +705,102 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                         )}
                       </div>
 
-                      {/* Deaths */}
+                      {/* Deaths & Toad times */}
                       <div className="mb-4">
-                        <label className="block text-sm font-body text-parchment/70 mb-1.5">Total Deaths</label>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="block text-sm font-body text-parchment/70">
+                            Deaths ({(data.deaths?.length ?? 0)})
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => addDeath(player.id)}
+                            className="text-xs font-body text-teal-light hover:text-teal border border-teal/30 hover:border-teal/60 hover:bg-teal/5 px-2.5 py-1 rounded-md transition-colors"
+                          >
+                            + Add Death
+                          </button>
+                        </div>
+                        {(data.deaths ?? []).length > 0 && (
+                          <div className="space-y-2">
+                            {(data.deaths ?? []).map((death, idx) => (
+                              <div key={idx} className="flex flex-wrap items-center gap-2">
+                                {data.characters_played.length > 1 && (
+                                  <select
+                                    className="input-field text-sm flex-1 min-w-[120px]"
+                                    value={death.character_id || ''}
+                                    onChange={e => updateDeath(player.id, idx, 'character_id', e.target.value)}
+                                  >
+                                    <option value="">Character...</option>
+                                    {data.characters_played.map((charName, ci) => {
+                                      const charObj = allCharacters.find(c => c.name === charName)
+                                      return charObj ? (
+                                        <option key={`${charObj.id}-${ci}`} value={charObj.id}>{charName}</option>
+                                      ) : null
+                                    })}
+                                  </select>
+                                )}
+                                <select
+                                  className="input-field text-sm flex-1 min-w-[140px]"
+                                  value={death.death_type_id}
+                                  onChange={e => updateDeath(player.id, idx, 'death_type_id', e.target.value)}
+                                >
+                                  <option value="">Death type...</option>
+                                  {allDeathTypes.map(dt => (
+                                    <option key={dt.id} value={dt.id}>{dt.name}</option>
+                                  ))}
+                                </select>
+                                {death.death_type_id === pvpDeathTypeId && (
+                                  <select
+                                    className="input-field text-sm flex-1 min-w-[120px]"
+                                    value={death.killed_by_player_id || ''}
+                                    onChange={e => updateDeath(player.id, idx, 'killed_by_player_id', e.target.value || null)}
+                                  >
+                                    <option value="">Killed by...</option>
+                                    {form.players
+                                      .filter(pid => pid !== player.id)
+                                      .map(pid => allPlayers.find(p => p.id === pid))
+                                      .filter(Boolean)
+                                      .map(p => (
+                                        <option key={p.id} value={p.id}>{p.name}</option>
+                                      ))}
+                                  </select>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => removeDeath(player.id, idx)}
+                                  className="text-lg leading-none text-muted hover:text-danger transition-colors p-1 hover:bg-danger/10 rounded-md"
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {step1Attempted && playersWithInvalidDeaths.includes(player.id) && (
+                          <p className="text-danger text-xs mt-1.5 font-body">
+                            Must have {Math.max(0, data.characters_played.length - 1)} or {data.characters_played.length} death{data.characters_played.length !== 1 ? 's' : ''}
+                          </p>
+                        )}
+                        {step1Attempted && playersWithIncompleteDeaths.includes(player.id) && (
+                          <p className="text-danger text-xs mt-1.5 font-body">
+                            Every death needs a type and character, and PVP deaths need a killer
+                          </p>
+                        )}
+                        {step1Attempted && playersWithOverkilledChars.includes(player.id) && (
+                          <p className="text-danger text-xs mt-1.5 font-body">
+                            A character can&apos;t die more times than it was played
+                          </p>
+                        )}
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-sm font-body text-parchment/70 mb-1.5">Times Toadified</label>
                         <input
                           type="number"
                           min="0"
                           className="input-field w-24"
-                          value={data.total_deaths}
-                          onChange={e => updatePlayerData(player.id, 'total_deaths', parseInt(e.target.value) || 0)}
+                          value={data.total_toad_times ?? 0}
+                          onChange={e => updatePlayerData(player.id, 'total_toad_times', Math.max(0, parseInt(e.target.value) || 0))}
                         />
-                        {step1Attempted && playersWithInvalidDeaths.includes(player.id) && (
-                          <p className="text-danger text-xs mt-1.5 font-body">
-                            Must be {Math.max(0, data.characters_played.length - 1)} or {data.characters_played.length}
-                          </p>
-                        )}
                       </div>
-
-                      {/* Winning character override */}
-                      {data.is_winner && (
-                        <div className="mb-4 p-3 bg-gold/5 border border-gold/20 rounded-lg">
-                          <label className="block text-sm font-body text-gold/80 mb-1.5">Winning Character</label>
-                          <select
-                            className="input-field text-sm"
-                            value={data.winning_character || ''}
-                            onChange={e => updatePlayerData(player.id, 'winning_character', e.target.value)}
-                          >
-                            <option value="">Select...</option>
-                            {data.characters_played.map((char, idx) => (
-                              <option key={idx} value={char}>{char}</option>
-                            ))}
-                          </select>
-                        </div>
-                      )}
 
                       {/* Expansion Events */}
                       <div className="border-t border-gold-dim/15 pt-4 mt-2">
@@ -757,7 +890,10 @@ export default function LogGame({ initialData, isEditing, gameId }) {
               className="btn-gold w-full"
               onClick={() => {
                 setStep1Attempted(true)
-                if (!step1HasErrors) setStep(2)
+                if (!step1HasErrors) {
+                  setStep(2)
+                  window.scrollTo({ top: 0, behavior: 'instant' })
+                }
               }}
             >
               Continue to Highscores &#8594;
@@ -942,7 +1078,17 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                         </span>
                         <span className="text-parchment/60">
                           {data.characters_played.length > 0 ? data.characters_played.join(' \u2192 ') : 'No characters'}
-                          {' \u00b7 '}{data.total_deaths} death{data.total_deaths !== 1 ? 's' : ''}
+                          {' \u00b7 '}{data.deaths?.length ?? 0} death{(data.deaths?.length ?? 0) !== 1 ? 's' : ''}
+                          {(data.deaths?.length ?? 0) > 0 && (
+                            <> ({(data.deaths ?? []).map(d => {
+                              const typeName = allDeathTypes.find(dt => dt.id === d.death_type_id)?.name || '?'
+                              const charName = allCharacters.find(c => c.id === d.character_id)?.name
+                              return charName ? `${charName}: ${typeName}` : typeName
+                            }).join(', ')})</>
+                          )}
+                          {(data.total_toad_times ?? 0) > 0 && (
+                            <>{' \u00b7 '}{data.total_toad_times} toad{data.total_toad_times !== 1 ? 's' : ''}</>
+                          )}
                         </span>
                       </div>
                     )
@@ -993,7 +1139,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
             <button
               type="button"
               className="btn-outline"
-              onClick={() => setStep(1)}
+              onClick={() => { setStep(1); window.scrollTo({ top: 0, behavior: 'instant' }) }}
             >
               &#8592; Back
             </button>

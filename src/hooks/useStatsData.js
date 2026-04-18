@@ -14,7 +14,6 @@ export function useStatsData() {
           players:game_players (
             id,
             characters_played,
-            total_deaths,
             is_winner,
             winning_character,
             player:players ( id, name )
@@ -26,10 +25,28 @@ export function useStatsData() {
             detail,
             character,
             player:players ( id, name )
+          ),
+          deaths:game_player_deaths (
+            id,
+            player_id,
+            killed_by_player_id,
+            death_type:death_types ( id, name ),
+            character:characters ( id, name ),
+            killed_by:players!game_player_deaths_killed_by_fkey ( id, name )
           )
         `)
       if (error) throw error
-      return data ?? []
+      return (data ?? []).map(game => {
+        const allDeaths = game.deaths ?? []
+        return {
+          ...game,
+          players: (game.players ?? []).map(gp => ({
+            ...gp,
+            total_deaths: allDeaths.filter(d => d.player_id === gp.player.id).length,
+            deaths: allDeaths.filter(d => d.player_id === gp.player.id),
+          })),
+        }
+      })
     },
   })
 }

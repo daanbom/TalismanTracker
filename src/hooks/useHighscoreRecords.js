@@ -15,26 +15,68 @@ const CATEGORY_LABELS = {
   most_denizens_on_spot: 'Most Denizens on Spot',
 }
 
+const DERIVED_CATEGORIES = {
+  most_deaths: 'total_deaths',
+  most_toad_times: 'total_toad_times',
+}
+
 export function useHighscoreRecords() {
   return useQuery({
     queryKey: ['highscoreRecords'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('game_highscores')
-        .select(`
-          category,
-          value,
-          player:players ( id, name ),
-          game:games ( id, date )
-        `)
+      const [hsResult, gpResult, deathResult] = await Promise.all([
+        supabase
+          .from('game_highscores')
+          .select(`
+            category,
+            value,
+            player:players ( id, name ),
+            game:games ( id, date )
+          `),
+        supabase
+          .from('game_players')
+          .select(`
+            game_id,
+            total_toad_times,
+            player:players ( id, name ),
+            game:games ( id, date )
+          `),
+        supabase
+          .from('game_player_deaths')
+          .select('game_id, player_id'),
+      ])
 
-      if (error) throw error
+      if (hsResult.error) throw hsResult.error
+      if (gpResult.error) throw gpResult.error
+      if (deathResult.error) throw deathResult.error
+
+      const deathCounts = new Map()
+      for (const d of deathResult.data) {
+        const key = `${d.game_id}::${d.player_id}`
+        deathCounts.set(key, (deathCounts.get(key) ?? 0) + 1)
+      }
+
+      gpResult.data = gpResult.data.map(gp => ({
+        ...gp,
+        total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
+      }))
 
       const topByCategory = new Map()
-      for (const row of data) {
+      for (const row of hsResult.data) {
         if (!topByCategory.has(row.category)) topByCategory.set(row.category, [])
         topByCategory.get(row.category).push(row)
       }
+
+      for (const [category, column] of Object.entries(DERIVED_CATEGORIES)) {
+        const rows = []
+        for (const gp of gpResult.data) {
+          const value = Number(gp[column] ?? 0)
+          if (value <= 0) continue
+          rows.push({ category, value, player: gp.player, game: gp.game })
+        }
+        topByCategory.set(category, rows)
+      }
+
       for (const [category, rows] of topByCategory) {
         rows.sort((a, b) => Number(b.value) - Number(a.value))
         topByCategory.set(category, rows.slice(0, 5))

@@ -19,8 +19,6 @@ const CATEGORY_LABELS = {
   most_strength: 'Most Strength (without bonus)',
   most_craft: 'Most Craft (without bonus)',
   most_life: 'Most Life',
-  most_deaths: 'Most Deaths',
-  most_toad_times: 'Most Times Turned Into Toad',
   longest_toad_streak: 'Longest Toad Streak (consecutive turns)',
   most_denizens_on_spot: 'Most Denizens on Spot',
 }
@@ -158,8 +156,25 @@ export default function GameDetail() {
                 </div>
                 <span className="text-muted text-sm font-body">
                   {gp.total_deaths} death{gp.total_deaths !== 1 ? 's' : ''}
+                  {(gp.total_toad_times ?? 0) > 0 && (
+                    <> &middot; {gp.total_toad_times} toad time{gp.total_toad_times !== 1 ? 's' : ''}</>
+                  )}
                 </span>
               </div>
+              {(gp.deaths ?? []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {gp.deaths.map((d, i) => (
+                    <span
+                      key={d.id ?? i}
+                      className="px-2.5 py-0.5 rounded-full text-xs font-body border border-danger/20 bg-danger/5 text-danger/80"
+                    >
+                      {d.character?.name && <>{d.character.name} &middot; </>}
+                      {d.death_type?.name ?? 'Unknown'}
+                      {d.killed_by && <> by {d.killed_by.name}</>}
+                    </span>
+                  ))}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2">
                 {gp.characters_played.map((char, idx) => (
                   <span key={idx} className="inline-flex items-center gap-1.5">

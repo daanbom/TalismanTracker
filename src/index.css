@@ -259,3 +259,51 @@ body::before {
   margin-bottom: 1rem;
   border-bottom: 1px solid color-mix(in srgb, var(--color-gold-dim) 30%, transparent);
 }
+
+/* Heraldic portrait frame (player avatars, lg variant) */
+.avatar-heraldic {
+  position: relative;
+  border: 1.5px solid var(--color-gold-dim);
+  outline: 1px solid color-mix(in srgb, var(--color-gold-dim) 55%, transparent);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-deep) 70%, transparent),
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-gold-light) 20%, transparent),
+    0 2px 12px -2px color-mix(in srgb, var(--color-gold) 30%, transparent);
+  transition: border-color 0.3s ease, outline-color 0.3s ease, box-shadow 0.3s ease;
+}
+.avatar-heraldic::before,
+.avatar-heraldic::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.55;
+  transition: border-color 0.3s ease, opacity 0.3s ease;
+}
+.avatar-heraldic::before {
+  top: 3px;
+  left: 3px;
+  border-top: 1.5px solid var(--color-gold-light);
+  border-left: 1.5px solid var(--color-gold-light);
+}
+.avatar-heraldic::after {
+  bottom: 3px;
+  right: 3px;
+  border-bottom: 1.5px solid var(--color-gold-light);
+  border-right: 1.5px solid var(--color-gold-light);
+}
+.avatar-heraldic:hover {
+  border-color: var(--color-gold);
+  outline-color: color-mix(in srgb, var(--color-gold) 50%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-deep) 60%, transparent),
+    inset 0 1px 0 0 color-mix(in srgb, var(--color-gold-light) 28%, transparent),
+    0 4px 18px -2px color-mix(in srgb, var(--color-gold) 45%, transparent);
+}
+.avatar-heraldic:hover::before,
+.avatar-heraldic:hover::after {
+  opacity: 1;
+}

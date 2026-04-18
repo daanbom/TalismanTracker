@@ -25,9 +25,13 @@ export default function EditGame() {
     playerData: game.players.reduce((acc, p) => {
       acc[p.player.id] = {
         characters_played: p.characters_played,
-        total_deaths: p.total_deaths,
+        deaths: (p.deaths ?? []).map(d => ({
+          death_type_id: d.death_type?.id ?? '',
+          character_id: d.character?.id ?? '',
+          killed_by_player_id: d.killed_by?.id ?? null,
+        })),
+        total_toad_times: p.total_toad_times ?? 0,
         is_winner: p.is_winner,
-        winning_character: p.winning_character,
       }
       return acc
     }, {}),

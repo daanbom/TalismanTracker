@@ -20,7 +20,7 @@ export function useGame(id) {
           players:game_players (
             id,
             characters_played,
-            total_deaths,
+            total_toad_times,
             is_winner,
             winning_character,
             player:players ( id, name )
@@ -38,11 +38,20 @@ export function useGame(id) {
             detail,
             character,
             player:players ( id, name )
+          ),
+          deaths:game_player_deaths (
+            id,
+            player_id,
+            killed_by_player_id,
+            death_type:death_types ( id, name ),
+            character:characters ( id, name ),
+            killed_by:players!game_player_deaths_killed_by_fkey ( id, name )
           )
         `)
         .eq('id', id)
         .single()
       if (error) throw error
+      const allDeaths = data.deaths ?? []
       return {
         id: data.id,
         title: data.title,
@@ -52,14 +61,19 @@ export function useGame(id) {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         ending: data.ending,
-        players: (data.players ?? []).map((gp) => ({
-          id: gp.id,
-          player: gp.player,
-          characters_played: gp.characters_played ?? [],
-          total_deaths: gp.total_deaths,
-          is_winner: gp.is_winner,
-          winning_character: gp.winning_character,
-        })),
+        players: (data.players ?? []).map((gp) => {
+          const playerDeaths = allDeaths.filter(d => d.player_id === gp.player.id)
+          return {
+            id: gp.id,
+            player: gp.player,
+            characters_played: gp.characters_played ?? [],
+            total_deaths: playerDeaths.length,
+            deaths: playerDeaths,
+            total_toad_times: gp.total_toad_times ?? 0,
+            is_winner: gp.is_winner,
+            winning_character: gp.winning_character,
+          }
+        }),
         highscores: data.highscores ?? [],
         expansion_events: data.expansion_events ?? [],
       }

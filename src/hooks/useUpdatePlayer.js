@@ -1,19 +1,18 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 
-export function useAddPlayer() {
+export function useUpdatePlayer() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ name, iconKey = null, iconCharacterId = null, favoriteCharacterId = null }) => {
+    mutationFn: async ({ playerId, name, iconKey = null, iconCharacterId = null, favoriteCharacterId = null }) => {
       const trimmed = name.trim()
       if (!trimmed) throw new Error('Name is required')
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('players')
-        .insert({ name: trimmed, icon_key: iconKey, icon_character_id: iconCharacterId, favorite_character_id: favoriteCharacterId })
-        .select('id, name, created_at, icon_key, icon_character_id')
-        .single()
+        .update({ name: trimmed, icon_key: iconKey, icon_character_id: iconCharacterId, favorite_character_id: favoriteCharacterId })
+        .eq('id', playerId)
+        .select('id')
       if (error) throw error
-      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players'] })
