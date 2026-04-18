@@ -124,6 +124,64 @@ export function computeCharacterStats(games, allCharacters) {
   return rows
 }
 
+// ── Characters by Player ─────────────────────────────────────
+// Same shape as computeCharacterStats but keyed per player+character pair.
+export function computeCharacterStatsByPlayer(games, allCharacters) {
+  const stats = new Map()
+  const ensure = (playerName, charName) => {
+    const key = `${playerName}::${charName}`
+    if (!stats.has(key)) {
+      stats.set(key, { playerName, character: charName, games: 0, wins: 0, deaths: 0, deathTypeCounts: new Map() })
+    }
+    return stats.get(key)
+  }
+
+  for (const game of games) {
+    for (const gp of game.players ?? []) {
+      const playerName = gp.player?.name ?? 'Unknown'
+      const chars = gp.characters_played ?? []
+      const deathsByChar = new Map()
+      for (const d of gp.deaths ?? []) {
+        const charName = d.character?.name
+        if (charName) {
+          if (!deathsByChar.has(charName)) deathsByChar.set(charName, [])
+          deathsByChar.get(charName).push(d)
+        }
+      }
+      for (const char of chars) {
+        const row = ensure(playerName, char)
+        row.games += 1
+        const charDeaths = deathsByChar.get(char) ?? []
+        if (charDeaths.length > 0) row.deaths += 1
+        for (const d of charDeaths) {
+          const typeName = d.death_type?.name
+          if (typeName) row.deathTypeCounts.set(typeName, (row.deathTypeCounts.get(typeName) ?? 0) + 1)
+        }
+      }
+      if (gp.is_winner && gp.winning_character) {
+        ensure(playerName, gp.winning_character).wins += 1
+      }
+    }
+  }
+
+  const expansionByName = new Map((allCharacters ?? []).map(c => [c.name, c.expansion]))
+
+  return Array.from(stats.values()).map(row => {
+    let topDeath = 'NA'
+    let maxCount = 0
+    for (const [type, count] of row.deathTypeCounts) {
+      if (count > maxCount) { maxCount = count; topDeath = `${type} (${count})` }
+    }
+    return {
+      ...row,
+      expansion: expansionByName.get(row.character) ?? 'NA',
+      winRate: row.games > 0 ? row.wins / row.games : 0,
+      deathRate: row.games > 0 ? row.deaths / row.games : 0,
+      topDeath,
+    }
+  })
+}
+
 // ── Endings ─────────────────────────────────────────────────
 // For each ending: times triggered, % of games, player win rate,
 // talisman (no-winner) rate, top winning character.

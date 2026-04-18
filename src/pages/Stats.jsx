@@ -5,6 +5,7 @@ import {
   OPTIONAL_EXPANSION_FILTERS,
   filterGamesByOptionalExpansions,
   computeCharacterStats,
+  computeCharacterStatsByPlayer,
   computeEndingStats,
   computeExpansionEventStats,
   computeDeathTypeStats,
@@ -89,21 +90,53 @@ const pct = (v) => `${(v * 100).toFixed(1)}%`
 
 function CharactersTab({ games, allCharacters }) {
   const [expansionFilter, setExpansionFilter] = useState('all')
+  const [selectedPlayer, setSelectedPlayer] = useState('')
   const { sortKey, sortDir, toggle, sort } = useSort('games', 'desc')
+  const playerSort = useSort('games', 'desc')
 
   const rows = useMemo(
     () => computeCharacterStats(games, allCharacters),
     [games, allCharacters],
   )
+  const byPlayerRows = useMemo(
+    () => computeCharacterStatsByPlayer(games, allCharacters),
+    [games, allCharacters],
+  )
+
   const expansions = useMemo(() => {
     const set = new Set(rows.map(r => r.expansion).filter(Boolean))
     return Array.from(set).sort()
   }, [rows])
+
+  const playerNames = useMemo(() => {
+    const set = new Set(byPlayerRows.map(r => r.playerName))
+    return Array.from(set).sort()
+  }, [byPlayerRows])
+
   const filtered = expansionFilter === 'all'
     ? rows
     : rows.filter(r => r.expansion === expansionFilter)
 
-  const columns = [
+  const filteredByPlayer = useMemo(() => {
+    if (!selectedPlayer) {
+      return [...byPlayerRows].sort((a, b) => b.games - a.games).slice(0, 5)
+    }
+    return byPlayerRows.filter(r => r.playerName === selectedPlayer)
+  }, [byPlayerRows, selectedPlayer])
+
+  const globalColumns = [
+    { key: 'character', label: 'Character', align: 'left' },
+    { key: 'expansion', label: 'Expansion', align: 'left' },
+    { key: 'games', label: 'Games', align: 'center' },
+    { key: 'wins', label: 'Wins', align: 'center' },
+    { key: 'winRate', label: 'Win %', align: 'center', format: pct, accent: true },
+    { key: 'deaths', label: 'Deaths', align: 'center' },
+    { key: 'deathRate', label: 'Death %', align: 'center', format: pct },
+    { key: 'topDeath', label: 'Top Death', align: 'left', sortable: false },
+  ]
+
+  const playerColumns = [
+    ...(!selectedPlayer ? [{ key: 'playerName', label: 'Player', align: 'left' }] : []),
     { key: 'character', label: 'Character', align: 'left' },
     { key: 'expansion', label: 'Expansion', align: 'left' },
     { key: 'games', label: 'Games', align: 'center' },
@@ -115,27 +148,52 @@ function CharactersTab({ games, allCharacters }) {
   ]
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-xs font-body text-muted uppercase tracking-wider">Expansion</span>
-        <select
-          className="input-field text-sm py-1.5 w-auto"
-          value={expansionFilter}
-          onChange={e => setExpansionFilter(e.target.value)}
-        >
-          <option value="all">All</option>
-          {expansions.map(e => <option key={e} value={e}>{e}</option>)}
-        </select>
-      </div>
-      <StatsTable
-        columns={columns}
-        rows={filtered}
-        sort={sort}
-        sortKey={sortKey}
-        sortDir={sortDir}
-        onSort={toggle}
-        emptyMessage="No character data yet."
-      />
+    <div className="space-y-8">
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-body text-muted uppercase tracking-wider">Expansion</span>
+          <select
+            className="input-field text-sm py-1.5 w-auto"
+            value={expansionFilter}
+            onChange={e => setExpansionFilter(e.target.value)}
+          >
+            <option value="all">All</option>
+            {expansions.map(e => <option key={e} value={e}>{e}</option>)}
+          </select>
+        </div>
+        <StatsTable
+          columns={globalColumns}
+          rows={filtered}
+          sort={sort}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSort={toggle}
+          emptyMessage="No character data yet."
+        />
+      </section>
+      <section className="space-y-4">
+        <h3 className="font-heading text-lg text-parchment tracking-wide">Characters by Player</h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-body text-muted uppercase tracking-wider">Player</span>
+          <select
+            className="input-field text-sm py-1.5 w-auto"
+            value={selectedPlayer}
+            onChange={e => setSelectedPlayer(e.target.value)}
+          >
+            <option value="">Top 5</option>
+            {playerNames.map(name => <option key={name} value={name}>{name}</option>)}
+          </select>
+        </div>
+        <StatsTable
+          columns={playerColumns}
+          rows={filteredByPlayer}
+          sort={playerSort.sort}
+          sortKey={playerSort.sortKey}
+          sortDir={playerSort.sortDir}
+          onSort={playerSort.toggle}
+          emptyMessage="No character data for this player."
+        />
+      </section>
     </div>
   )
 }
@@ -379,7 +437,6 @@ function ExpansionsTab({ games }) {
 
 function DeathsTab({ games }) {
   const deathTypeSort = useSort('count', 'desc')
-  const playerBreakdownSort = useSort('count', 'desc')
   const playerFilterSort = useSort('count', 'desc')
   const charFilterSort = useSort('count', 'desc')
   const pvpSort = useSort('count', 'desc')
@@ -432,12 +489,6 @@ function DeathsTab({ games }) {
     { key: 'deathType', label: 'Death Type', align: 'left' },
     { key: 'count', label: 'Count', align: 'center', accent: true },
     { key: 'pctOfAllDeaths', label: '% of Deaths', align: 'center', format: pct },
-  ]
-
-  const playerBreakdownColumns = [
-    { key: 'playerName', label: 'Player', align: 'left' },
-    { key: 'deathType', label: 'Death Type', align: 'left' },
-    { key: 'count', label: 'Count', align: 'center', accent: true },
   ]
 
   const pvpColumns = [
@@ -533,18 +584,6 @@ function DeathsTab({ games }) {
           sortDir={pvpSort.sortDir}
           onSort={pvpSort.toggle}
           emptyMessage="No PVP kills recorded yet."
-        />
-      </section>
-      <section>
-        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Deaths per Player</h3>
-        <StatsTable
-          columns={playerBreakdownColumns}
-          rows={playerBreakdownRows}
-          sort={playerBreakdownSort.sort}
-          sortKey={playerBreakdownSort.sortKey}
-          sortDir={playerBreakdownSort.sortDir}
-          onSort={playerBreakdownSort.toggle}
-          emptyMessage="No death data yet."
         />
       </section>
     </div>
