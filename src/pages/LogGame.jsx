@@ -339,7 +339,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
   const handleAddPlayerInline = () => {
     const name = newPlayerName.trim()
     if (!name) return
-    addPlayer.mutate(name, {
+    addPlayer.mutate({ name }, {
       onSuccess: (created) => {
         setShowAddPlayer(false)
         setNewPlayerName('')
