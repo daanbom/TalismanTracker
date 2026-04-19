@@ -9,6 +9,8 @@ import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 import { useDeathTypes } from '../hooks/useDeathTypes'
 import { AVAILABLE_ICONS } from '../data/availableIcons'
+import { WOODLAND_PATHS } from '../data/woodlandPaths'
+import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
 
 const charIconUrl = (name) => {
   const icon = AVAILABLE_ICONS.find(i => i.name.toLowerCase() === name.toLowerCase())
@@ -27,13 +29,6 @@ const HIGHSCORE_CATEGORIES = [
   { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot', gameLevel: true },
 ]
 
-const WOODLAND_PATHS = [
-  'Way of Light',
-  'Path of Destiny',
-  'Sylvan Path',
-  'Ancient Way',
-  'Dark Path',
-]
 
 const TITLE_MAX_LENGTH = 100
 
@@ -823,21 +818,22 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                           <h4 className="font-heading text-xs text-teal-light tracking-wide uppercase mb-2">Woodland, Paths Completed</h4>
                           <div className="flex flex-wrap gap-2 mb-2">
                             {WOODLAND_PATHS.map(path => {
-                              const entry = events.woodland.paths_completed.find(e => e.path === path)
+                              const entry = events.woodland.paths_completed.find(e => e.path === path.name)
                               const selected = !!entry
                               return (
-                                <button
-                                  key={path}
-                                  type="button"
-                                  onClick={() => toggleWoodlandPath(player.id, path)}
-                                  className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
-                                    selected
-                                      ? 'border-teal bg-teal/15 text-teal-light'
-                                      : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
-                                  }`}
-                                >
-                                  {path}
-                                </button>
+                                <WoodlandPathTooltip key={path.roll} name={path.name}>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleWoodlandPath(player.id, path.name)}
+                                    className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
+                                      selected
+                                        ? 'border-teal bg-teal/15 text-teal-light'
+                                        : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+                                    }`}
+                                  >
+                                    {path.name}
+                                  </button>
+                                </WoodlandPathTooltip>
                               )
                             })}
                           </div>

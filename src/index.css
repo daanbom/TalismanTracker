@@ -260,6 +260,88 @@ body::before {
   border-bottom: 1px solid color-mix(in srgb, var(--color-gold-dim) 30%, transparent);
 }
 
+/* Hero damask tile — talismanic triangle sigil repeating on deep base */
+.hero-damask {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%238a7434' stroke-width='0.7'%3E%3Cpath d='M70 42 L92 82 L48 82 Z'/%3E%3Ccircle cx='70' cy='70' r='5'/%3E%3Cpath d='M70 28 Q 82 34 88 46'/%3E%3Cpath d='M70 28 Q 58 34 52 46'/%3E%3Cpath d='M48 82 Q 38 92 44 108'/%3E%3Cpath d='M92 82 Q 102 92 96 108'/%3E%3Cpath d='M0 0 L10 10'/%3E%3Cpath d='M140 0 L130 10'/%3E%3Cpath d='M0 140 L10 130'/%3E%3Cpath d='M140 140 L130 130'/%3E%3C/g%3E%3Cg fill='%238a7434'%3E%3Ccircle cx='0' cy='70' r='1.2'/%3E%3Ccircle cx='140' cy='70' r='1.2'/%3E%3Ccircle cx='70' cy='0' r='1.2'/%3E%3Ccircle cx='70' cy='140' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 140px 140px;
+  background-repeat: repeat;
+  opacity: 0.45;
+}
+
+/* Hero radial vignette — dim the edges, keep center readable */
+.hero-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    transparent 35%,
+    color-mix(in srgb, var(--color-deep) 55%, transparent) 70%,
+    var(--color-deep) 100%
+  );
+}
+
+/* Hero title halo — soft dark blob so title reads against the medallion */
+.hero-title-halo {
+  background: radial-gradient(
+    ellipse 50% 35% at center,
+    color-mix(in srgb, var(--color-deep) 80%, transparent) 0%,
+    color-mix(in srgb, var(--color-deep) 40%, transparent) 50%,
+    transparent 80%
+  );
+}
+
+/* Medallion + ring animations */
+@keyframes ringSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes ringSpinReverse {
+  to { transform: rotate(-360deg); }
+}
+.hero-ring-spin {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  animation: ringSpin 180s linear infinite;
+}
+.hero-ring-spin-reverse {
+  transform-box: view-box;
+  transform-origin: 200px 200px;
+  animation: ringSpinReverse 240s linear infinite;
+}
+
+@keyframes medallionBreathe {
+  0%, 100% {
+    opacity: 0.4;
+    filter: drop-shadow(0 0 18px rgba(201, 168, 76, 0.12));
+  }
+  50% {
+    opacity: 0.55;
+    filter: drop-shadow(0 0 32px rgba(201, 168, 76, 0.28));
+  }
+}
+.hero-medallion-svg {
+  animation: medallionBreathe 7s ease-in-out infinite;
+}
+
+/* Option 1 — concentric board rings */
+@keyframes boardSpinSlow {
+  to { transform: rotate(360deg); }
+}
+@keyframes boardSpinRev {
+  to { transform: rotate(-360deg); }
+}
+.board-spin-slow {
+  transform-box: view-box;
+  transform-origin: 400px 400px;
+  animation: boardSpinSlow 300s linear infinite;
+}
+.board-spin-rev {
+  transform-box: view-box;
+  transform-origin: 400px 400px;
+  animation: boardSpinRev 220s linear infinite;
+}
+.hero-board-svg {
+  animation: medallionBreathe 9s ease-in-out infinite;
+}
+
 /* Heraldic portrait frame (player avatars, lg variant) */
 .avatar-heraldic {
   position: relative;

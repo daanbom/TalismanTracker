@@ -13,15 +13,6 @@ const NAV_LINKS = [
   { to: '/players', label: 'Players' },
 ]
 
-function CrownIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 20h20" />
-      <path d="M4 17l2-12 4 5 2-6 2 6 4-5 2 12" />
-    </svg>
-  )
-}
-
 function HamburgerIcon({ open }) {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -59,7 +50,7 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2.5 text-gold hover:text-gold-light transition-colors">
-              <CrownIcon />
+              <img src="/icons/talisman-logo.png" alt="" className="w-8 h-8" />
               <span className="font-display text-lg tracking-wider hidden sm:block">
                 Talisman Tracker
               </span>

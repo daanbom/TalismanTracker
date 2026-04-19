@@ -1,7 +1,261 @@
 import { Link } from 'react-router-dom'
-import heroImg from '../assets/hero.png'
 import { useGames } from '../hooks/useGames'
 import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
+
+function CornerFlourish({ position }) {
+  const cornerClass = {
+    tl: 'top-3 left-3',
+    tr: 'top-3 right-3 scale-x-[-1]',
+    bl: 'bottom-3 left-3 scale-y-[-1]',
+    br: 'bottom-3 right-3 scale-[-1]',
+  }[position]
+  return (
+    <svg
+      className={`absolute ${cornerClass} w-20 h-20 text-gold-dim/45 pointer-events-none`}
+      viewBox="0 0 80 80"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1"
+      strokeLinecap="round"
+      aria-hidden
+    >
+      <path d="M2 2 L2 30" />
+      <path d="M2 2 L30 2" />
+      <path d="M2 10 Q 14 14 20 22 Q 26 28 34 28" />
+      <path d="M10 2 Q 14 14 22 20 Q 28 26 28 34" />
+      <circle cx="30" cy="30" r="2.5" />
+      <circle cx="30" cy="30" r="5" opacity="0.4" />
+      <path d="M8 8 L16 16" strokeWidth="0.7" />
+    </svg>
+  )
+}
+
+function BoardBackdrop() {
+  const mkDivs = (count, r1, r2, key) =>
+    Array.from({ length: count }, (_, i) => {
+      const a = ((i * 360) / count - 90) * (Math.PI / 180)
+      return (
+        <line
+          key={`${key}-${i}`}
+          x1={400 + Math.cos(a) * r1}
+          y1={400 + Math.sin(a) * r1}
+          x2={400 + Math.cos(a) * r2}
+          y2={400 + Math.sin(a) * r2}
+        />
+      )
+    })
+
+  return (
+    <svg
+      viewBox="0 0 800 800"
+      className="hero-board-svg w-[min(140vw,1200px)] h-auto"
+      aria-hidden
+    >
+      <defs>
+        <radialGradient id="board-fade" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.12" />
+          <stop offset="55%" stopColor="#c9a84c" stopOpacity="0.04" />
+          <stop offset="100%" stopColor="#c9a84c" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="crown-halo" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#dfc070" stopOpacity="0.45" />
+          <stop offset="60%" stopColor="#c9a84c" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#c9a84c" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      <circle cx="400" cy="400" r="395" fill="url(#board-fade)" />
+
+      {/* Outer Region — 24 divisions, slow rotation */}
+      <g className="board-spin-slow" stroke="#8a7434" fill="none">
+        <circle cx="400" cy="400" r="380" strokeWidth="1.2" />
+        <circle cx="400" cy="400" r="340" strokeWidth="0.8" />
+        <g strokeWidth="0.5" opacity="0.75">{mkDivs(24, 340, 380, 'o')}</g>
+        {/* Four cardinal anchors — Village / City / Chapel / Warlock flavor marks */}
+        <g strokeWidth="1.4" opacity="0.9">{mkDivs(4, 332, 388, 'oc')}</g>
+      </g>
+
+      {/* Middle Region — 16 divisions, static */}
+      <g stroke="#8a7434" fill="none" opacity="0.85">
+        <circle cx="400" cy="400" r="290" strokeWidth="1" />
+        <circle cx="400" cy="400" r="250" strokeWidth="0.7" />
+        <g strokeWidth="0.5" opacity="0.7">{mkDivs(16, 250, 290, 'm')}</g>
+      </g>
+
+      {/* Portal of Power — dashed transition between middle and outer */}
+      <circle
+        cx="400"
+        cy="400"
+        r="315"
+        fill="none"
+        stroke="#8a7434"
+        strokeWidth="0.35"
+        strokeDasharray="1 5"
+        opacity="0.6"
+      />
+
+      {/* Inner Region — Plain of Peril, 8 divisions, reverse spin */}
+      <g className="board-spin-rev" stroke="#8a7434" fill="none">
+        <circle cx="400" cy="400" r="190" strokeWidth="0.9" />
+        <circle cx="400" cy="400" r="150" strokeWidth="0.6" />
+        <g strokeWidth="0.45" opacity="0.75">{mkDivs(8, 150, 190, 'i')}</g>
+      </g>
+
+      {/* Valley of Fire — inner dashed boundary */}
+      <circle
+        cx="400"
+        cy="400"
+        r="220"
+        fill="none"
+        stroke="#8a7434"
+        strokeWidth="0.35"
+        strokeDasharray="1 5"
+        opacity="0.6"
+      />
+
+      {/* Central dais */}
+      <circle cx="400" cy="400" r="110" fill="url(#crown-halo)" />
+      <circle
+        cx="400"
+        cy="400"
+        r="95"
+        fill="none"
+        stroke="#c9a84c"
+        strokeWidth="0.9"
+        opacity="0.75"
+      />
+      <circle
+        cx="400"
+        cy="400"
+        r="78"
+        fill="none"
+        stroke="#8a7434"
+        strokeWidth="0.4"
+        strokeDasharray="2 3"
+      />
+
+      {/* Crown of Command at Centre */}
+      <g
+        transform="translate(400 412)"
+        fill="none"
+        stroke="#c9a84c"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      >
+        <path d="M-46 22 L46 22 L42 38 L-42 38 Z" />
+        <path d="M-36 30 L36 30" strokeWidth="0.6" opacity="0.7" />
+        <path d="M-46 22 L-54 0 L-33 11 L-20 -19 L-7 9 L0 -33 L7 9 L20 -19 L33 11 L54 0 L46 22" />
+        <circle cx="-54" cy="0" r="2.8" fill="#c9a84c" />
+        <circle cx="-20" cy="-19" r="2.8" fill="#c9a84c" />
+        <circle cx="0" cy="-33" r="4" fill="#dfc070" />
+        <circle cx="20" cy="-19" r="2.8" fill="#c9a84c" />
+        <circle cx="54" cy="0" r="2.8" fill="#c9a84c" />
+        <circle cx="-24" cy="30" r="1.9" fill="#c9a84c" />
+        <circle cx="0" cy="30" r="2.3" fill="#dfc070" />
+        <circle cx="24" cy="30" r="1.9" fill="#c9a84c" />
+        <path d="M0 -46 L0 -33 M-5 -40 L5 -40" strokeWidth="1.1" />
+      </g>
+    </svg>
+  )
+}
+
+function CrownMedallion() {
+  return (
+    <svg
+      viewBox="0 0 400 400"
+      className="hero-medallion-svg w-[min(80vw,560px)] h-auto"
+      aria-hidden
+    >
+      <defs>
+        <radialGradient id="medallion-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#c9a84c" stopOpacity="0.18" />
+          <stop offset="55%" stopColor="#c9a84c" stopOpacity="0.04" />
+          <stop offset="100%" stopColor="#c9a84c" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      <circle cx="200" cy="200" r="195" fill="url(#medallion-glow)" />
+
+      {/* Outer dashed ring (slow spin) */}
+      <g className="hero-ring-spin">
+        <circle
+          cx="200"
+          cy="200"
+          r="188"
+          fill="none"
+          stroke="#8a7434"
+          strokeWidth="0.8"
+          strokeDasharray="2 9"
+        />
+      </g>
+
+      {/* Inner dashed ring (reverse spin) */}
+      <g className="hero-ring-spin-reverse">
+        <circle
+          cx="200"
+          cy="200"
+          r="148"
+          fill="none"
+          stroke="#8a7434"
+          strokeWidth="0.5"
+          strokeDasharray="1 5"
+          opacity="0.7"
+        />
+      </g>
+
+      {/* Static rings */}
+      <g fill="none" stroke="#8a7434" opacity="0.6">
+        <circle cx="200" cy="200" r="168" strokeWidth="0.6" />
+        <circle cx="200" cy="200" r="115" strokeWidth="0.9" />
+        <circle cx="200" cy="200" r="108" strokeWidth="0.3" />
+      </g>
+
+      {/* Cardinal marks */}
+      <g stroke="#8a7434" fill="none" strokeWidth="0.9" opacity="0.6" strokeLinecap="round">
+        <path d="M200 12 L200 48 M192 30 L208 30" />
+        <path d="M200 352 L200 388 M192 370 L208 370" />
+        <path d="M12 200 L48 200 M30 192 L30 208" />
+        <path d="M352 200 L388 200 M370 192 L370 208" />
+      </g>
+
+      {/* Diagonal filigree sprigs */}
+      <g stroke="#8a7434" fill="none" strokeWidth="0.5" opacity="0.5" strokeLinecap="round">
+        <path d="M60 60 Q 80 80 110 95" />
+        <path d="M340 60 Q 320 80 290 95" />
+        <path d="M60 340 Q 80 320 110 305" />
+        <path d="M340 340 Q 320 320 290 305" />
+      </g>
+
+      {/* Crown of Command */}
+      <g
+        transform="translate(200 208)"
+        fill="none"
+        stroke="#c9a84c"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      >
+        {/* Band */}
+        <path d="M-58 28 L58 28 L52 46 L-52 46 Z" />
+        <path d="M-50 36 L50 36" strokeWidth="0.6" opacity="0.7" />
+        {/* Spike silhouette */}
+        <path d="M-58 28 L-70 0 L-42 14 L-26 -24 L-9 12 L0 -42 L9 12 L26 -24 L42 14 L70 0 L58 28" />
+        {/* Jewels on spikes */}
+        <circle cx="-70" cy="0" r="3.5" fill="#c9a84c" />
+        <circle cx="-26" cy="-24" r="3.5" fill="#c9a84c" />
+        <circle cx="0" cy="-42" r="5" fill="#dfc070" />
+        <circle cx="26" cy="-24" r="3.5" fill="#c9a84c" />
+        <circle cx="70" cy="0" r="3.5" fill="#c9a84c" />
+        {/* Band gems */}
+        <circle cx="-30" cy="37" r="2.4" fill="#c9a84c" />
+        <circle cx="0" cy="37" r="3" fill="#dfc070" />
+        <circle cx="30" cy="37" r="2.4" fill="#c9a84c" />
+        {/* Cross above central jewel */}
+        <path d="M0 -58 L0 -42 M-6 -52 L6 -52" strokeWidth="1.2" />
+      </g>
+    </svg>
+  )
+}
 
 const QUICK_LINKS = [
   {
@@ -61,17 +315,20 @@ export default function Home() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden">
-        {/* Background image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${heroImg})` }}
-        />
-        {/* Gradient overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-base via-base/70 to-base/40" />
-        <div className="absolute inset-0 bg-gradient-to-b from-deep/60 via-transparent to-transparent" />
-        {/* Vignette */}
-        <div className="absolute inset-0" style={{ boxShadow: 'inset 0 0 150px 50px rgba(15, 15, 26, 0.8)' }} />
+      <section className="relative min-h-[70vh] flex items-center justify-center overflow-hidden bg-deep">
+        {/* Talisman board — concentric regions with Crown at centre */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <BoardBackdrop />
+        </div>
+        {/* Radial edge vignette */}
+        <div className="hero-vignette absolute inset-0 pointer-events-none" />
+        {/* Soft dark halo behind the title for legibility */}
+        <div className="hero-title-halo absolute inset-0 pointer-events-none" />
+        {/* Corner flourishes */}
+        <CornerFlourish position="tl" />
+        <CornerFlourish position="tr" />
+        <CornerFlourish position="bl" />
+        <CornerFlourish position="br" />
 
         {/* Content */}
         <div className="relative z-10 text-center px-4 py-20">
