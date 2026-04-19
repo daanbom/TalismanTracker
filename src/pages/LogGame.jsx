@@ -8,6 +8,12 @@ import { useLogGame } from '../hooks/useLogGame'
 import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 import { useDeathTypes } from '../hooks/useDeathTypes'
+import { AVAILABLE_ICONS } from '../data/availableIcons'
+
+const charIconUrl = (name) => {
+  const icon = AVAILABLE_ICONS.find(i => i.name.toLowerCase() === name.toLowerCase())
+  return icon ? `/icons/${icon.key}${icon.ext}` : null
+}
 
 const HIGHSCORE_CATEGORIES = [
   { key: 'most_gold', label: 'Most Gold' },
@@ -430,9 +436,9 @@ export default function LogGame({ initialData, isEditing, gameId }) {
 
   const selectedPlayers = form.players.map(id => allPlayers.find(p => p.id === id)).filter(Boolean)
   const expansionOrder = [
-    'Base Game', 'The Reaper', 'The Frostmarch', 'The Dragon', 'The Woodland',
-    'The City', 'The Harbinger', 'The Firelands', 'The Cataclysm', 'The Dungeon',
-    'The Sacred Pool', 'The Blood Moon',
+    'Base Game', 'The Reaper', 'The Dungeon', 'The Highland', 'The Sacred Pool',
+    'The Harbinger', 'The Frostmarch', 'The Blood Moon', 'The City', 'The Woodland',
+    'The Dragon', 'The Firelands', 'The Cataclysm',
   ]
   const charactersByExpansion = allCharacters.reduce((acc, c) => {
     if (!acc[c.expansion]) acc[c.expansion] = []
@@ -688,6 +694,13 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                                 className="inline-flex items-center gap-1.5 bg-elevated px-3 py-1 rounded-full text-sm font-body text-parchment/80"
                               >
                                 <span className="text-gold-dim text-xs">{idx + 1}.</span>
+                                {charIconUrl(char) && (
+                                  <img
+                                    src={charIconUrl(char)}
+                                    alt=""
+                                    className="w-5 h-5 rounded-full object-cover object-top opacity-90"
+                                  />
+                                )}
                                 {char}
                                 <button
                                   type="button"

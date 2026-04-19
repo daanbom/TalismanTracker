@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useIcons } from '../hooks/useIcons'
+import { AVAILABLE_ICONS } from '../data/availableIcons'
+
+const iconExtMap = new Map(AVAILABLE_ICONS.map(i => [i.key, i.ext]))
 import { usePlayers } from '../hooks/usePlayers'
 import { useTierlist, EMPTY_TIERS } from '../hooks/useTierlist'
 import { useSaveTierlist } from '../hooks/useSaveTierlist'
@@ -24,11 +27,12 @@ const EXPANSION_LABELS = {
   sacred_pool: 'The Sacred Pool',
   harbinger: 'The Harbinger',
   frostmarch: 'The Frostmarch',
-  nether: 'The Nether Realm',
-  clockwork: 'The Clockwork Kingdom',
   blood_moon: 'The Blood Moon',
   city: 'The City',
   woodland: 'The Woodland',
+  dragon: 'The Dragon',
+  firelands: 'The Firelands',
+  cataclysm: 'The Cataclysm',
 }
 
 function CharacterImage({ iconKey, name, className, fallbackTextSize = 'text-xs' }) {
@@ -44,7 +48,7 @@ function CharacterImage({ iconKey, name, className, fallbackTextSize = 'text-xs'
   }
   return (
     <img
-      src={`/icons/${iconKey}.png`}
+      src={`/icons/${iconKey}${iconExtMap.get(iconKey) ?? '.png'}`}
       alt={name}
       className={className}
       onError={() => setErrored(true)}
@@ -103,35 +107,49 @@ function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDr
   )
 }
 
+function CharacterCard({ iconKey, name, fallback }) {
+  const [errored, setErrored] = useState(false)
+  useEffect(() => { setErrored(false) }, [iconKey])
+  if (errored) return fallback
+  return (
+    <img
+      src={`/characters/${iconKey}.webp`}
+      alt={name}
+      className="w-full h-full object-cover"
+      onError={() => setErrored(true)}
+    />
+  )
+}
+
 function CharacterDetailPanel({ icon }) {
   if (!icon) {
     return (
-      <div className="bg-surface border border-gold-dim/15 rounded-xl p-5 text-center">
-        <p className="text-muted text-sm font-body italic">
-          Hover a character to see details.
-        </p>
+      <div className="bg-surface border border-gold-dim/15 rounded-xl p-6 flex items-center justify-center min-h-28">
+        <p className="text-muted text-sm font-body italic">Hover a character to see details.</p>
       </div>
     )
   }
   return (
-    <div key={icon.key} className="bg-surface border border-gold-dim/20 rounded-xl p-5 flex gap-5 items-start animate-fade-in">
-      <div className="w-28 h-28 rounded-lg overflow-hidden border border-gold-dim/30 bg-deep shrink-0">
-        <CharacterImage
-          key={icon.key}
-          iconKey={icon.key}
-          name={icon.name}
-          className="w-full h-full object-cover"
-          fallbackTextSize="text-sm"
-        />
-      </div>
-      <div className="flex-1 min-w-0">
+    <div className="bg-surface border border-gold-dim/20 rounded-xl p-6 flex flex-col items-center gap-4">
+      <div className="text-center">
         <p className="text-xs font-body text-gold-dim uppercase tracking-widest mb-1">
           {EXPANSION_LABELS[icon.expansion] ?? icon.expansion ?? ''}
         </p>
-        <h3 className="font-heading text-2xl text-parchment tracking-wide mb-2">{icon.name}</h3>
-        <p className="text-sm font-body text-muted italic">
-          Character description and card art coming soon.
-        </p>
+        <h3 className="font-heading text-2xl text-parchment tracking-wide">{icon.name}</h3>
+      </div>
+      <div className="w-full max-w-lg rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70">
+        <CharacterCard
+          iconKey={icon.key}
+          name={icon.name}
+          fallback={
+            <CharacterImage
+              iconKey={icon.key}
+              name={icon.name}
+              className="w-full h-full object-cover"
+              fallbackTextSize="text-base"
+            />
+          }
+        />
       </div>
     </div>
   )
@@ -248,7 +266,7 @@ export default function Tierlist() {
   // Filter out any dangling keys (characters renamed/removed in the icons table).
   const queryStamp = tierlistQuery.dataUpdatedAt
   if (tierlistQuery.data && iconsQuery.data && seededAt !== queryStamp) {
-    const validKeys = new Set(iconsQuery.data.map(i => i.key))
+    const validKeys = new Set(iconsQuery.data.filter(i => i.key !== 'toad').map(i => i.key))
     const sanitized = {}
     for (const t of TIERS) {
       sanitized[t] = (tierlistQuery.data.tiers[t] ?? []).filter(k => validKeys.has(k))
@@ -306,7 +324,7 @@ export default function Tierlist() {
   }, [tiers])
 
   const poolKeys = useMemo(() => {
-    const all = iconsQuery.data ?? []
+    const all = (iconsQuery.data ?? []).filter(i => i.key !== 'toad')
     return all.filter(i => !placedKeys.has(i.key)).map(i => i.key)
   }, [iconsQuery.data, placedKeys])
 
@@ -318,7 +336,7 @@ export default function Tierlist() {
     setDropTarget({ tier, beforeKey, side })
   }
   const handleHover = key => setPreviewKey(key)
-  const previewIcon = previewKey ? iconsByKey.get(previewKey) : null
+  const previewIcon = iconsByKey.get(previewKey ?? poolKeys[0]) ?? null
 
   const handleDrop = (targetZone, opts) => {
     if (!draggingKey) return
@@ -434,10 +452,6 @@ export default function Tierlist() {
           ))}
 
           <div className="pt-4">
-            <CharacterDetailPanel icon={previewIcon} />
-          </div>
-
-          <div className="pt-4">
             <Pool
               iconKeys={poolKeys}
               iconsByKey={iconsByKey}
@@ -450,6 +464,10 @@ export default function Tierlist() {
               previewKey={previewKey}
               isOver={overZone === 'pool'}
             />
+          </div>
+
+          <div className="pt-4">
+            <CharacterDetailPanel icon={previewIcon} />
           </div>
         </div>
       )}

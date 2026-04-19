@@ -3,7 +3,8 @@ import { AVAILABLE_ICONS } from '../data/availableIcons'
 
 const EXPANSION_ORDER = [
   'base', 'reaper', 'dungeon', 'highland', 'sacred_pool',
-  'harbinger', 'frostmarch', 'nether', 'clockwork', 'blood_moon', 'city', 'woodland',
+  'harbinger', 'frostmarch', 'blood_moon', 'city', 'woodland',
+  'dragon', 'firelands', 'cataclysm',
 ]
 
 const EXPANSION_LABELS = {
@@ -14,11 +15,12 @@ const EXPANSION_LABELS = {
   sacred_pool: 'The Sacred Pool',
   harbinger: 'The Harbinger',
   frostmarch: 'The Frostmarch',
-  nether: 'The Nether Realm',
-  clockwork: 'The Clockwork Kingdom',
   blood_moon: 'The Blood Moon',
   city: 'The City',
   woodland: 'The Woodland',
+  dragon: 'The Dragon',
+  firelands: 'The Firelands',
+  cataclysm: 'The Cataclysm',
 }
 
 const CharacterTile = memo(function CharacterTile({ icon, selected, onSelect }) {
@@ -32,7 +34,7 @@ const CharacterTile = memo(function CharacterTile({ icon, selected, onSelect }) 
       }`}
     >
       <img
-        src={`/icons/${icon.key}.png`}
+        src={`/icons/${icon.key}${icon.ext}`}
         alt={icon.name}
         className="w-12 h-12 rounded object-cover bg-deep"
       />
