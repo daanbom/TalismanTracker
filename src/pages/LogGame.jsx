@@ -8,6 +8,14 @@ import { useLogGame } from '../hooks/useLogGame'
 import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 import { useDeathTypes } from '../hooks/useDeathTypes'
+import { AVAILABLE_ICONS } from '../data/availableIcons'
+import { WOODLAND_PATHS } from '../data/woodlandPaths'
+import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
+
+const charIconUrl = (name) => {
+  const icon = AVAILABLE_ICONS.find(i => i.name.toLowerCase() === name.toLowerCase())
+  return icon ? `/icons/${icon.key}${icon.ext}` : null
+}
 
 const HIGHSCORE_CATEGORIES = [
   { key: 'most_gold', label: 'Most Gold' },
@@ -21,13 +29,6 @@ const HIGHSCORE_CATEGORIES = [
   { key: 'most_denizens_on_spot', label: 'Most Denizens on Spot', gameLevel: true },
 ]
 
-const WOODLAND_PATHS = [
-  'Way of Light',
-  'Path of Destiny',
-  'Sylvan Path',
-  'Ancient Way',
-  'Dark Path',
-]
 
 const TITLE_MAX_LENGTH = 100
 
@@ -430,9 +431,9 @@ export default function LogGame({ initialData, isEditing, gameId }) {
 
   const selectedPlayers = form.players.map(id => allPlayers.find(p => p.id === id)).filter(Boolean)
   const expansionOrder = [
-    'Base Game', 'The Reaper', 'The Frostmarch', 'The Dragon', 'The Woodland',
-    'The City', 'The Harbinger', 'The Firelands', 'The Cataclysm', 'The Dungeon',
-    'The Sacred Pool', 'The Blood Moon',
+    'Base Game', 'The Reaper', 'The Dungeon', 'The Highland', 'The Sacred Pool',
+    'The Harbinger', 'The Frostmarch', 'The Blood Moon', 'The City', 'The Woodland',
+    'The Dragon', 'The Firelands', 'The Cataclysm',
   ]
   const charactersByExpansion = allCharacters.reduce((acc, c) => {
     if (!acc[c.expansion]) acc[c.expansion] = []
@@ -688,6 +689,13 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                                 className="inline-flex items-center gap-1.5 bg-elevated px-3 py-1 rounded-full text-sm font-body text-parchment/80"
                               >
                                 <span className="text-gold-dim text-xs">{idx + 1}.</span>
+                                {charIconUrl(char) && (
+                                  <img
+                                    src={charIconUrl(char)}
+                                    alt=""
+                                    className="w-5 h-5 rounded-full object-cover object-top opacity-90"
+                                  />
+                                )}
                                 {char}
                                 <button
                                   type="button"
@@ -810,21 +818,22 @@ export default function LogGame({ initialData, isEditing, gameId }) {
                           <h4 className="font-heading text-xs text-teal-light tracking-wide uppercase mb-2">Woodland, Paths Completed</h4>
                           <div className="flex flex-wrap gap-2 mb-2">
                             {WOODLAND_PATHS.map(path => {
-                              const entry = events.woodland.paths_completed.find(e => e.path === path)
+                              const entry = events.woodland.paths_completed.find(e => e.path === path.name)
                               const selected = !!entry
                               return (
-                                <button
-                                  key={path}
-                                  type="button"
-                                  onClick={() => toggleWoodlandPath(player.id, path)}
-                                  className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
-                                    selected
-                                      ? 'border-teal bg-teal/15 text-teal-light'
-                                      : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
-                                  }`}
-                                >
-                                  {path}
-                                </button>
+                                <WoodlandPathTooltip key={path.roll} name={path.name}>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleWoodlandPath(player.id, path.name)}
+                                    className={`px-3 py-1.5 rounded-full text-sm font-body border transition-colors ${
+                                      selected
+                                        ? 'border-teal bg-teal/15 text-teal-light'
+                                        : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+                                    }`}
+                                  >
+                                    {path.name}
+                                  </button>
+                                </WoodlandPathTooltip>
                               )
                             })}
                           </div>

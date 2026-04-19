@@ -6,6 +6,10 @@ import { useAddPlayer } from '../hooks/useAddPlayer'
 import { useUpdatePlayer } from '../hooks/useUpdatePlayer'
 import { useCharacters } from '../hooks/useCharacters'
 import { IconPicker } from '../components/IconPicker'
+import { AVAILABLE_ICONS } from '../data/availableIcons'
+
+const iconExtMap = new Map(AVAILABLE_ICONS.map(i => [i.key, i.ext]))
+function iconSrc(key) { return key ? `/icons/${key}${iconExtMap.get(key) ?? '.png'}` : null }
 
 function PlayerAvatar({ iconKey, name, onClick, size = 'lg' }) {
   const dim = size === 'lg' ? 'w-20 h-20' : 'w-10 h-10'
@@ -33,7 +37,7 @@ function PlayerAvatar({ iconKey, name, onClick, size = 'lg' }) {
       className={`${dim} rounded-xl overflow-hidden ${frame}`}
     >
       <img
-        src={`/icons/${iconKey}.png`}
+        src={iconSrc(iconKey)}
         alt={iconKey}
         className="w-full h-full object-cover"
         onError={e => {
@@ -261,7 +265,7 @@ export default function Players() {
               <label className="block text-sm font-body text-parchment/80 mb-1.5">Profile Icon <span className="text-muted">(optional)</span></label>
               <div className="flex items-center gap-3">
                 {newIconKey ? (
-                  <img src={`/icons/${newIconKey}.png`} alt={newIconKey} className="w-12 h-12 rounded-lg object-cover border border-gold-dim/30" />
+                  <img src={iconSrc(newIconKey)} alt={newIconKey} className="w-12 h-12 rounded-lg object-cover border border-gold-dim/30" />
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-elevated border border-gold-dim/20 flex items-center justify-center text-muted text-xs font-body">?</div>
                 )}
@@ -339,7 +343,7 @@ export default function Players() {
               <label className="block text-sm font-body text-parchment/80 mb-1.5">Profile Icon <span className="text-muted">(optional)</span></label>
               <div className="flex items-center gap-3">
                 {editIconKey ? (
-                  <img src={`/icons/${editIconKey}.png`} alt={editIconKey} className="w-12 h-12 rounded-lg object-cover border border-gold-dim/30" />
+                  <img src={iconSrc(editIconKey)} alt={editIconKey} className="w-12 h-12 rounded-lg object-cover border border-gold-dim/30" />
                 ) : (
                   <div className="w-12 h-12 rounded-lg bg-elevated border border-gold-dim/20 flex items-center justify-center text-muted text-xs font-body">?</div>
                 )}
