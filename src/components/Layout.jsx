@@ -82,7 +82,7 @@ export default function Layout({ children }) {
         {/* Mobile menu */}
         <div
           className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-            mobileOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+            mobileOpen ? 'max-h-[32rem] opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
           <div className="px-4 pb-4 pt-1 space-y-1 bg-deep/95 border-t border-gold-dim/10">
