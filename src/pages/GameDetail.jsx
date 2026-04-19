@@ -1,6 +1,7 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useGame } from '../hooks/useGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
+import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -236,9 +237,11 @@ export default function GameDetail() {
                       </span>
                       <div className="flex flex-wrap gap-1.5">
                         {group.woodlandPaths.map((path, i) => (
-                          <span key={i} className="px-2 py-0.5 rounded-full text-xs font-body border border-gold-dim/20 text-parchment/70">
-                            {path}
-                          </span>
+                          <WoodlandPathTooltip key={i} name={path}>
+                            <span className="px-2 py-0.5 rounded-full text-xs font-body border border-gold-dim/20 text-parchment/70 cursor-default">
+                              {path}
+                            </span>
+                          </WoodlandPathTooltip>
                         ))}
                       </div>
                     </div>

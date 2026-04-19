@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
 import { useStatsData } from '../hooks/useStatsData'
 import { useCharacters } from '../hooks/useCharacters'
 import {
@@ -291,13 +292,23 @@ function ExpansionsTab({ games }) {
     { key: 'playerName', label: 'Player', align: 'left' },
     { key: 'count', label: 'Paths Completed', align: 'center', accent: true },
   ]
+  const pathNameColumn = {
+    key: 'path',
+    label: 'Path',
+    align: 'left',
+    format: (name) => (
+      <WoodlandPathTooltip name={name}>
+        <span className="cursor-default underline decoration-dotted decoration-gold-dim/40 underline-offset-2">{name}</span>
+      </WoodlandPathTooltip>
+    ),
+  }
   const pathByPathColumns = [
-    { key: 'path', label: 'Path', align: 'left' },
+    pathNameColumn,
     { key: 'count', label: 'Times Completed', align: 'center', accent: true },
   ]
   const pathColumns = [
     { key: 'character', label: 'Character', align: 'left' },
-    { key: 'path', label: 'Path', align: 'left' },
+    pathNameColumn,
     { key: 'count', label: 'Completed', align: 'center', accent: true },
   ]
 
@@ -394,7 +405,7 @@ function ExpansionsTab({ games }) {
         <StatsTable
           columns={[
             ...(!pathPlayer ? [{ key: 'playerName', label: 'Player', align: 'left' }] : []),
-            { key: 'path', label: 'Path', align: 'left' },
+            pathNameColumn,
             { key: 'count', label: 'Completed', align: 'center', accent: true },
           ]}
           rows={filteredPathsByPlayer}
