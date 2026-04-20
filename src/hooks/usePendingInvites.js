@@ -4,22 +4,16 @@ import { useAuth } from './useAuth'
 import { useCurrentPlayer } from './useCurrentPlayer'
 
 // Invites addressed to the current user's email, pending, not expired.
-// Explicit invited_email filter — RLS admin branch would otherwise leak
-// every invite on the admin's groups into their own pending list.
+// Uses a SECURITY DEFINER RPC so the group name comes back even though the
+// invitee isn't a group member yet (the groups select policy is members-only).
 export function usePendingInvites() {
   const { user } = useAuth()
   const { data: player } = useCurrentPlayer()
-  const email = user?.email?.toLowerCase() ?? null
   return useQuery({
     queryKey: ['pendingInvites', user?.id],
-    enabled: !!user && !!player && !!email,
+    enabled: !!user && !!player,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('group_invites')
-        .select('id, token, group_id, expires_at, groups(name)')
-        .eq('invited_email', email)
-        .eq('status', 'pending')
-        .gt('expires_at', new Date().toISOString())
+      const { data, error } = await supabase.rpc('get_pending_invites_for_me')
       if (error) throw error
       return data
     },

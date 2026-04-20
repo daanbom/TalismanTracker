@@ -42,7 +42,7 @@ export default function PendingInvitesBanner() {
           {invites.map((inv) => (
             <li key={inv.id} className="flex items-center justify-between gap-3">
               <span className="text-parchment">
-                <span className="font-heading text-gold">{inv.groups?.name ?? 'A group'}</span> invited you to join.
+                <span className="font-heading text-gold">{inv.group_name ?? 'A group'}</span> invited you to join.
               </span>
               <div className="flex gap-2">
                 <button
