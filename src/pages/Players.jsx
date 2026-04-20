@@ -5,6 +5,7 @@ import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
 import { useAddPlayer } from '../hooks/useAddPlayer'
 import { useUpdatePlayer } from '../hooks/useUpdatePlayer'
 import { useCharacters } from '../hooks/useCharacters'
+import { useCurrentPlayer } from '../hooks/useCurrentPlayer'
 import { IconPicker } from '../components/IconPicker'
 import { AVAILABLE_ICONS } from '../data/availableIcons'
 
@@ -18,12 +19,15 @@ function PlayerAvatar({ iconKey, name, onClick, size = 'lg' }) {
     ? 'avatar-heraldic'
     : 'border border-gold-dim/20 hover:border-gold/50 transition-colors'
 
+  const interactive = typeof onClick === 'function'
+
   if (!iconKey) {
     return (
       <button
         onClick={onClick}
-        title="Set profile icon"
-        className={`${dim} rounded-xl bg-elevated flex items-center justify-center ${text} font-heading text-gold-dim ${frame}`}
+        disabled={!interactive}
+        title={interactive ? 'Set profile icon' : undefined}
+        className={`${dim} rounded-xl bg-elevated flex items-center justify-center ${text} font-heading text-gold-dim ${frame} ${interactive ? '' : 'cursor-default'}`}
       >
         {name.charAt(0).toUpperCase()}
       </button>
@@ -33,8 +37,9 @@ function PlayerAvatar({ iconKey, name, onClick, size = 'lg' }) {
   return (
     <button
       onClick={onClick}
-      title="Change profile icon"
-      className={`${dim} rounded-xl overflow-hidden ${frame}`}
+      disabled={!interactive}
+      title={interactive ? 'Change profile icon' : undefined}
+      className={`${dim} rounded-xl overflow-hidden ${frame} ${interactive ? '' : 'cursor-default'}`}
     >
       <img
         src={iconSrc(iconKey)}
@@ -68,8 +73,11 @@ export default function Players() {
   const playersQuery = usePlayers()
   const statsQuery = useLeaderboardStats()
   const { data: allCharacters = [] } = useCharacters()
+  const { data: currentPlayer } = useCurrentPlayer()
   const addPlayer = useAddPlayer()
   const updatePlayer = useUpdatePlayer()
+
+  const canEdit = (player) => !!currentPlayer && player.id === currentPlayer.id
 
   const expansionOrder = [
     'Base Game', 'The Reaper', 'The Frostmarch', 'The Dragon', 'The Woodland',
@@ -168,12 +176,18 @@ export default function Players() {
             >
               <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-gold-dim/10">
                 <div>
-                  <button
-                    onClick={() => openEditModal(player)}
-                    className="font-heading text-lg text-parchment tracking-wide hover:text-gold transition-colors text-left"
-                  >
-                    {player.name}
-                  </button>
+                  {canEdit(player) ? (
+                    <button
+                      onClick={() => openEditModal(player)}
+                      className="font-heading text-lg text-parchment tracking-wide hover:text-gold transition-colors text-left"
+                    >
+                      {player.name}
+                    </button>
+                  ) : (
+                    <span className="font-heading text-lg text-parchment tracking-wide">
+                      {player.name}
+                    </span>
+                  )}
                   <div className="mt-0.5">
                     <span className="text-muted text-xs font-body">Favourite Character</span>
                     <p className="text-sm font-body text-parchment/80">
@@ -184,7 +198,7 @@ export default function Players() {
                 <PlayerAvatar
                   iconKey={player.iconKey}
                   name={player.name}
-                  onClick={() => openEditModal(player)}
+                  onClick={canEdit(player) ? () => openEditModal(player) : undefined}
                 />
               </div>
               <div className="grid grid-cols-2 gap-y-2 text-sm font-body">
