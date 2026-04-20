@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -34,6 +35,12 @@ function HamburgerIcon({ open }) {
 
 export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { user, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    setMobileOpen(false)
+    await signOut()
+  }
 
   const linkClasses = ({ isActive }) =>
     `font-heading text-sm tracking-wide transition-colors duration-200 ${
@@ -66,6 +73,14 @@ export default function Layout({ children }) {
                   {link.label}
                 </NavLink>
               ))}
+              {user && (
+                <button
+                  onClick={handleSignOut}
+                  className="font-heading text-sm tracking-wide text-parchment/70 hover:text-gold-light transition-colors"
+                >
+                  Logout
+                </button>
+              )}
             </div>
 
             {/* Mobile hamburger */}
@@ -103,6 +118,14 @@ export default function Layout({ children }) {
                 {link.label}
               </NavLink>
             ))}
+            {user && (
+              <button
+                onClick={handleSignOut}
+                className="block w-full text-left py-2.5 px-3 rounded-lg font-heading text-sm tracking-wide text-parchment/70 hover:text-gold-light hover:bg-gold/5 transition-colors"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </div>
       </nav>
