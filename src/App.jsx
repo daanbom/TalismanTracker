@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import AuthCallback from './pages/AuthCallback'
 import Setup from './pages/Setup'
+import CreateGroup from './pages/CreateGroup'
 import Home from './pages/Home'
 import LogGame from './pages/LogGame'
 import EditGame from './pages/EditGame'
@@ -43,6 +44,7 @@ export default function App() {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/setup" element={<Setup />} />
+              <Route path="/groups/new" element={<CreateGroup />} />
               <Route path="/" element={<Home />} />
               <Route path="/log" element={<LogGame />} />
               <Route path="/games/:id/edit" element={<EditGame />} />

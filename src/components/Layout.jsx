@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import GroupSwitcher from './GroupSwitcher'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -73,6 +74,7 @@ export default function Layout({ children }) {
                   {link.label}
                 </NavLink>
               ))}
+              {user && <GroupSwitcher />}
               {user && (
                 <button
                   onClick={handleSignOut}
@@ -118,6 +120,11 @@ export default function Layout({ children }) {
                 {link.label}
               </NavLink>
             ))}
+            {user && (
+              <div className="pt-2 pb-1 px-1">
+                <GroupSwitcher onNavigate={() => setMobileOpen(false)} />
+              </div>
+            )}
             {user && (
               <button
                 onClick={handleSignOut}
