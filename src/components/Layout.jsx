@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import GroupSwitcher from './GroupSwitcher'
+import PendingInvitesBanner from './PendingInvitesBanner'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -139,6 +140,7 @@ export default function Layout({ children }) {
 
       {/* Page content */}
       <main className="flex-1 pt-16">
+        <PendingInvitesBanner />
         {children}
       </main>
 

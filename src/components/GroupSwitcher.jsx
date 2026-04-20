@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useActiveGroup } from '../hooks/useActiveGroup'
+import { useAuth } from '../hooks/useAuth'
 
 export default function GroupSwitcher({ onNavigate }) {
   const { activeGroup, groups, setActiveGroup } = useActiveGroup()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const containerRef = useRef(null)
@@ -71,6 +73,19 @@ export default function GroupSwitcher({ onNavigate }) {
           >
             Global (disabled)
           </button>
+          {activeGroup && activeGroup.admin_user_id === user?.id && (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                onNavigate?.()
+                navigate(`/groups/${activeGroup.id}/settings`)
+              }}
+              className="w-full text-left px-3 py-2 text-sm font-heading text-parchment hover:bg-gold/5 border-t border-gold-dim/20"
+            >
+              Group settings
+            </button>
+          )}
           <div className="border-t border-gold-dim/20" />
           <button
             type="button"

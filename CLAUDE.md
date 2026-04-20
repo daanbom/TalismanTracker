@@ -43,6 +43,8 @@ npm run lint      # eslint
 
 **House Rules** is a chooser landing at `/house-rules` with two sub-pages: `/house-rules/rules` (the fellowship's house-rules text, from `HOUSE_RULES` in `src/data/houseRules.js`) and `/house-rules/rulebooks` (official PDFs grouped by core/corner/small, from `RULEBOOKS` in the same file). Each rulebook entry carries `slug`, `subtitle`, `type` (`pdf`/`web`), `group`, and `icon` — the icon key maps to an inline SVG defined in `Rulebooks.jsx`.
 
+**Group invites.** `/groups/:id/settings` is the admin surface for invite management (copy/regenerate link, send email-style invites, revoke/history). `/join/:code` is the public link-join page — it resolves the code via the `get_group_by_invite_code` RPC and short-circuits existing members. `PendingInvitesBanner` mounts inside `Layout` and surfaces email-style invites to the invitee with Accept/Decline (session-scoped dismiss via `sessionStorage`). Magic-link auth supports `?next=` via `sanitizeNext` in `src/utils/redirect.js`; `ProtectedRoute` preserves the current path on unauth redirect, and `AuthCallback` honors the sanitized `next` after session resolves.
+
 ## Database
 
 Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players`, `game_highscores`, `game_expansion_events`, `icons` (seed, characters + Toad), `encounter_scores`, `tierlists`. Full schema in `EDD.md`.
@@ -50,6 +52,8 @@ Tables: `players`, `characters` (seed), `endings` (seed), `games`, `game_players
 **Tierlists** are per-player and stored as a single JSONB column (`{S:[],A:[],B:[],C:[],D:[],F:[]}` of icon keys) on the `tierlists` table with a unique `player_id`. The Tierlist page (`/players/:id/tierlist`) sources characters from the `icons` table (so Toad is rankable) and filters dangling keys on load. Drag/drop uses HTML5 native DnD — no third-party library.
 
 Migrations live in `supabase/migrations/` and are applied via Supabase CLI. Seed data (characters, endings) is included in the initial migration.
+
+**`group_invites` hygiene.** Emails are stored case-insensitive (CHECK `invited_email = lower(...)`). A partial unique index on `(group_id, invited_email) WHERE status='pending'` enforces one pending invite per email per group — admin re-invites update the existing row rather than inserting a duplicate. `expires_at` is NOT NULL with a 7-day default. Two RPCs back the invite flow: `accept_group_invite(p_token)` (SECURITY DEFINER, atomically verifies the invite, inserts the `group_members` row, marks the invite accepted, returns the group_id) and `get_group_by_invite_code(p_code)` (resolves a link code to `(id, name)` without widening the `groups` select policy).
 
 ### Supabase workflow
 
