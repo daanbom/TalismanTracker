@@ -16,7 +16,9 @@ export default function ProtectedRoute({ children }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+    const next = location.pathname + location.search
+    const qs = next && next !== '/' ? `?next=${encodeURIComponent(next)}` : ''
+    return <Navigate to={`/login${qs}`} replace />
   }
 
   if (!player && location.pathname !== '/setup') {

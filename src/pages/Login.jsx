@@ -1,16 +1,20 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { sanitizeNext } from '../utils/redirect'
 
 export default function Login() {
   const [email, setEmail] = useState('')
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
+  const [searchParams] = useSearchParams()
+  const next = sanitizeNext(searchParams.get('next'))
 
   const onSubmit = async (e) => {
     e.preventDefault()
     setStatus('sending')
     setError(null)
-    const redirectUrl = `${window.location.origin}/auth/callback`
+    const redirectUrl = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: redirectUrl },
