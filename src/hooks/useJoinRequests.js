@@ -5,7 +5,7 @@ import { useAuth } from './useAuth'
 export function useAllGroups() {
   const { user } = useAuth()
   return useQuery({
-    queryKey: ['allGroups'],
+    queryKey: ['allGroups', user?.id],
     enabled: !!user,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('list_all_groups')
@@ -110,6 +110,7 @@ export function useDeclineJoinRequest(groupId) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['groupJoinRequests', groupId] })
+      qc.invalidateQueries({ queryKey: ['myJoinRequests'] })
     },
   })
 }
