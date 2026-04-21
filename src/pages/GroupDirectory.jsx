@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useGroups } from '../hooks/useGroups'
 import { useAllGroups, useMyJoinRequests, useRequestToJoin } from '../hooks/useJoinRequests'
 
@@ -6,6 +7,7 @@ export default function GroupDirectory() {
   const { data: myRequests = [] } = useMyJoinRequests()
   const { data: myMemberships = [] } = useGroups()
   const requestToJoin = useRequestToJoin()
+  const [requestError, setRequestError] = useState(null)
 
   const memberGroupIds = new Set(myMemberships.map((g) => g.id))
   const requestsByGroupId = Object.fromEntries(myRequests.map((r) => [r.group_id, r]))
@@ -43,7 +45,14 @@ export default function GroupDirectory() {
                   <button
                     type="button"
                     disabled={requestToJoin.isPending}
-                    onClick={() => requestToJoin.mutate({ groupId: group.id })}
+                    onClick={async () => {
+                      setRequestError(null)
+                      try {
+                        await requestToJoin.mutateAsync({ groupId: group.id })
+                      } catch (e) {
+                        setRequestError(e.message ?? 'Failed to send request.')
+                      }
+                    }}
                     className="px-3 py-1.5 text-sm bg-gold text-deep font-heading rounded hover:bg-gold-light transition-colors disabled:opacity-50"
                   >
                     Request to join
@@ -53,6 +62,9 @@ export default function GroupDirectory() {
             )
           })}
         </ul>
+      )}
+      {requestError && (
+        <p className="text-red-400 text-sm">{requestError}</p>
       )}
     </div>
   )

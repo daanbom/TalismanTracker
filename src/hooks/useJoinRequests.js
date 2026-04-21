@@ -65,8 +65,8 @@ export function useRequestToJoin() {
           .delete()
           .eq('id', existing.id)
         if (delErr) throw delErr
-      } else if (existing?.status === 'pending') {
-        return // already pending, no-op
+      } else if (existing?.status === 'pending' || existing?.status === 'approved') {
+        return // already pending or approved, no-op
       }
 
       const { error: insErr } = await supabase
