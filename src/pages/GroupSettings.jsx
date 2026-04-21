@@ -9,6 +9,11 @@ import {
   useRevokeInvite,
   useRegenerateInviteCode,
 } from '../hooks/useGroupInvites'
+import {
+  useGroupJoinRequests,
+  useApproveJoinRequest,
+  useDeclineJoinRequest,
+} from '../hooks/useJoinRequests'
 
 function relativeExpiry(iso) {
   const diff = new Date(iso).getTime() - Date.now()
@@ -30,6 +35,10 @@ export default function GroupSettings() {
   const createInvite = useCreateEmailInvite(groupId)
   const revokeInvite = useRevokeInvite(groupId)
   const regenerate = useRegenerateInviteCode(groupId)
+
+  const { data: joinRequests = [], isLoading: joinRequestsLoading } = useGroupJoinRequests(groupId)
+  const approveRequest = useApproveJoinRequest(groupId)
+  const declineRequest = useDeclineJoinRequest(groupId)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const [formError, setFormError] = useState(null)
@@ -165,6 +174,48 @@ export default function GroupSettings() {
                     Revoke
                   </button>
                 )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-heading text-xl text-parchment">
+          Join requests{joinRequests.length > 0 ? ` (${joinRequests.length})` : ''}
+        </h2>
+        {joinRequestsLoading ? (
+          <p className="text-parchment/50 text-sm">Loading…</p>
+        ) : joinRequests.length === 0 ? (
+          <p className="text-parchment/50 text-sm italic">No pending requests.</p>
+        ) : (
+          <ul className="divide-y divide-gold-dim/20 border border-gold-dim/20 rounded">
+            {joinRequests.map((req) => (
+              <li key={req.id} className="flex items-center justify-between px-4 py-3">
+                <div>
+                  <div className="text-parchment">{req.player_name ?? 'Unknown player'}</div>
+                  <div className="text-xs text-parchment/50 font-body">
+                    {new Date(req.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => approveRequest.mutate(req.id)}
+                    disabled={approveRequest.isPending}
+                    className="px-3 py-1.5 text-sm bg-gold text-deep font-heading rounded hover:bg-gold-light transition-colors disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => declineRequest.mutate(req.id)}
+                    disabled={declineRequest.isPending}
+                    className="px-3 py-1.5 text-sm border border-gold-dim/40 text-parchment font-heading rounded hover:text-gold hover:border-gold-dim transition-colors disabled:opacity-50"
+                  >
+                    Decline
+                  </button>
+                </div>
               </li>
             ))}
           </ul>

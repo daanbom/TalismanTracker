@@ -1,27 +1,29 @@
 import { useState } from 'react'
-import { useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
-import { sanitizeNext } from '../utils/redirect'
 
-export default function Login() {
+export default function Register() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const next = sanitizeNext(searchParams.get('next'))
 
   const onSubmit = async (e) => {
     e.preventDefault()
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
     setStatus('loading')
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signUp({ email, password })
     if (error) {
       setError(error.message)
       setStatus('idle')
     } else {
-      navigate(next, { replace: true })
+      navigate('/', { replace: true })
     }
   }
 
@@ -55,19 +57,30 @@ export default function Login() {
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
+          <label className="block">
+            <span className="block text-sm text-parchment/80 mb-1 font-heading">Confirm password</span>
+            <input
+              type="password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+              className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
+            />
+          </label>
           <button
             type="submit"
             disabled={status === 'loading'}
             className="w-full px-4 py-2 bg-gold text-deep font-heading tracking-wide rounded disabled:opacity-50 hover:bg-gold-light transition-colors"
           >
-            {status === 'loading' ? 'Signing in…' : 'Sign in'}
+            {status === 'loading' ? 'Creating account…' : 'Create account'}
           </button>
           {error && <p className="text-red-400 text-sm">{error}</p>}
         </form>
         <p className="text-center text-sm text-parchment/60">
-          No account?{' '}
-          <Link to="/register" className="text-gold hover:text-gold-light transition-colors">
-            Create one
+          Already have an account?{' '}
+          <Link to="/login" className="text-gold hover:text-gold-light transition-colors">
+            Sign in
           </Link>
         </p>
       </div>

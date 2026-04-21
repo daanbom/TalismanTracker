@@ -4,11 +4,12 @@ import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import AuthCallback from './pages/AuthCallback'
+import Register from './pages/Register'
 import Setup from './pages/Setup'
 import CreateGroup from './pages/CreateGroup'
 import GroupSettings from './pages/GroupSettings'
 import JoinGroup from './pages/JoinGroup'
+import GroupDirectory from './pages/GroupDirectory'
 import Home from './pages/Home'
 import LogGame from './pages/LogGame'
 import EditGame from './pages/EditGame'
@@ -43,12 +44,13 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/register" element={<Register />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/setup" element={<Setup />} />
               <Route path="/groups/new" element={<CreateGroup />} />
               <Route path="/groups/:id/settings" element={<GroupSettings />} />
               <Route path="/join/:code" element={<JoinGroup />} />
+              <Route path="/groups" element={<GroupDirectory />} />
               <Route path="/" element={<Home />} />
               <Route path="/log" element={<LogGame />} />
               <Route path="/games/:id/edit" element={<EditGame />} />

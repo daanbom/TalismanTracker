@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import { useAuth } from '../hooks/useAuth'
+import { useGroupJoinRequests } from '../hooks/useJoinRequests'
 
 export default function GroupSwitcher({ onNavigate }) {
   const { activeGroup, groups, setActiveGroup } = useActiveGroup()
@@ -22,6 +23,11 @@ export default function GroupSwitcher({ onNavigate }) {
   }, [open])
 
   const label = activeGroup?.name ?? 'No group'
+
+  const isAdmin = activeGroup?.admin_user_id === user?.id
+  const pendingGroupId = isAdmin ? activeGroup?.id : null
+  const { data: pendingRequests = [] } = useGroupJoinRequests(pendingGroupId)
+  const pendingCount = pendingRequests.length
 
   const choose = (id) => {
     setActiveGroup(id)
@@ -73,7 +79,7 @@ export default function GroupSwitcher({ onNavigate }) {
           >
             Global (disabled)
           </button>
-          {activeGroup && activeGroup.admin_user_id === user?.id && (
+          {activeGroup && isAdmin && (
             <button
               type="button"
               onClick={() => {
@@ -81,12 +87,22 @@ export default function GroupSwitcher({ onNavigate }) {
                 onNavigate?.()
                 navigate(`/groups/${activeGroup.id}/settings`)
               }}
-              className="w-full text-left px-3 py-2 text-sm font-heading text-parchment hover:bg-gold/5 border-t border-gold-dim/20"
+              className="w-full text-left px-3 py-2 text-sm font-heading text-parchment hover:bg-gold/5 transition-colors border-t border-gold-dim/20"
             >
-              Group settings
+              Group settings{pendingCount > 0 ? ` (${pendingCount})` : ''}
             </button>
           )}
-          <div className="border-t border-gold-dim/20" />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              onNavigate?.()
+              navigate('/groups')
+            }}
+            className="w-full text-left px-3 py-2 text-sm font-heading text-parchment/80 border-t border-gold-dim/20 hover:bg-gold/5 transition-colors"
+          >
+            Browse groups
+          </button>
           <button
             type="button"
             onClick={goCreate}
