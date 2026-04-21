@@ -4,7 +4,7 @@ import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import Login from './pages/Login'
-import AuthCallback from './pages/AuthCallback'
+import Register from './pages/Register'
 import Setup from './pages/Setup'
 import CreateGroup from './pages/CreateGroup'
 import GroupSettings from './pages/GroupSettings'
@@ -44,7 +44,7 @@ export default function App() {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/register" element={<Register />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/setup" element={<Setup />} />
               <Route path="/groups/new" element={<CreateGroup />} />
