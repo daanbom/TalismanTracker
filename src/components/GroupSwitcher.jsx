@@ -87,12 +87,11 @@ export default function GroupSwitcher({ onNavigate }) {
                 onNavigate?.()
                 navigate(`/groups/${activeGroup.id}/settings`)
               }}
-              className="w-full text-left px-3 py-2 text-sm font-heading text-parchment hover:bg-gold/5 border-t border-gold-dim/20"
+              className="w-full text-left px-3 py-2 text-sm font-heading text-parchment hover:bg-gold/5 transition-colors border-t border-gold-dim/20"
             >
               Group settings{pendingCount > 0 ? ` (${pendingCount})` : ''}
             </button>
           )}
-          <div className="border-t border-gold-dim/20" />
           <button
             type="button"
             onClick={() => {
@@ -100,7 +99,7 @@ export default function GroupSwitcher({ onNavigate }) {
               onNavigate?.()
               navigate('/groups')
             }}
-            className="w-full text-left px-3 py-2 text-sm font-heading text-parchment/80 hover:bg-gold/5 transition-colors"
+            className="w-full text-left px-3 py-2 text-sm font-heading text-parchment/80 border-t border-gold-dim/20 hover:bg-gold/5 transition-colors"
           >
             Browse groups
           </button>
