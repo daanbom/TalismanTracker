@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, Navigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, Navigate, useNavigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '../hooks/useAuth'
 import { useGroups } from '../hooks/useGroups'
@@ -14,6 +14,12 @@ import {
   useApproveJoinRequest,
   useDeclineJoinRequest,
 } from '../hooks/useJoinRequests'
+import {
+  useGroupMembers,
+  useRemoveMember,
+  useTransferAdmin,
+  useRenameGroup,
+} from '../hooks/useGroupMembers'
 
 function relativeExpiry(iso) {
   const diff = new Date(iso).getTime() - Date.now()
@@ -27,6 +33,7 @@ function relativeExpiry(iso) {
 export default function GroupSettings() {
   const { id: groupId } = useParams()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { data: groups = [], isLoading: groupsLoading } = useGroups()
   const group = groups.find((g) => g.id === groupId)
 
@@ -40,15 +47,68 @@ export default function GroupSettings() {
   const approveRequest = useApproveJoinRequest(groupId)
   const declineRequest = useDeclineJoinRequest(groupId)
 
+  const { data: members = [], isLoading: membersLoading } = useGroupMembers(groupId)
+  const removeMember = useRemoveMember(groupId)
+  const transferAdmin = useTransferAdmin(groupId)
+  const renameGroup = useRenameGroup(groupId)
+
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
   const [formError, setFormError] = useState(null)
   const [toast, setToast] = useState(null)
+  const [renameError, setRenameError] = useState(null)
+
+  const {
+    register: registerRename,
+    handleSubmit: handleRenameSubmit,
+    reset: resetRename,
+    formState: { errors: renameErrors },
+  } = useForm({ defaultValues: { name: group?.name ?? '' } })
+
+  useEffect(() => {
+    if (group?.name) resetRename({ name: group.name })
+  }, [group?.name]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (groupsLoading) return <div className="p-8 text-parchment/60">Loading…</div>
   if (!group) return <Navigate to="/" replace />
   if (group.admin_user_id !== user?.id) return <Navigate to="/" replace />
 
   const joinUrl = `${window.location.origin}/join/${group.invite_code}`
+
+  const onRename = handleRenameSubmit(async ({ name }) => {
+    setRenameError(null)
+    const trimmed = name.trim()
+    if (trimmed === group.name) return
+    try {
+      await renameGroup.mutateAsync(trimmed)
+      setToast('Group renamed.')
+      setTimeout(() => setToast(null), 2000)
+    } catch (e) {
+      setRenameError(e.message ?? 'Failed to rename group.')
+    }
+  })
+
+  const onRemoveMember = async (member) => {
+    if (!window.confirm(`Remove ${member.name} from the group?`)) return
+    try {
+      await removeMember.mutateAsync(member.userId)
+      setToast(`${member.name} removed.`)
+      setTimeout(() => setToast(null), 2000)
+    } catch (e) {
+      setToast(`Failed to remove member: ${e.message}`)
+      setTimeout(() => setToast(null), 3000)
+    }
+  }
+
+  const onTransferAdmin = async (member) => {
+    if (!window.confirm(`Transfer admin to ${member.name}? You will lose admin access.`)) return
+    try {
+      await transferAdmin.mutateAsync(member.userId)
+      navigate('/')
+    } catch (e) {
+      setToast(`Failed to transfer admin: ${e.message}`)
+      setTimeout(() => setToast(null), 3000)
+    }
+  }
 
   const onCopy = async () => {
     await navigator.clipboard.writeText(joinUrl)
@@ -91,6 +151,74 @@ export default function GroupSettings() {
       </header>
 
       {toast && <div className="px-4 py-2 bg-gold/10 border border-gold-dim/40 rounded text-parchment">{toast}</div>}
+
+      <section className="space-y-3">
+        <h2 className="font-heading text-xl text-parchment">Rename group</h2>
+        <form onSubmit={onRename} className="flex gap-2">
+          <input
+            type="text"
+            {...registerRename('name', { required: 'Name required' })}
+            className="flex-1 px-3 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded"
+          />
+          <button
+            type="submit"
+            disabled={renameGroup.isPending}
+            className="px-4 py-2 bg-gold text-deep font-heading rounded hover:bg-gold-light transition-colors"
+          >
+            {renameGroup.isPending ? 'Saving…' : 'Save'}
+          </button>
+        </form>
+        {renameErrors.name && <p className="text-red-400 text-sm">{renameErrors.name.message}</p>}
+        {renameError && <p className="text-red-400 text-sm">{renameError}</p>}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="font-heading text-xl text-parchment">
+          Members{members.length > 0 ? ` (${members.length})` : ''}
+        </h2>
+        {membersLoading ? (
+          <p className="text-parchment/50 text-sm">Loading…</p>
+        ) : members.length === 0 ? (
+          <p className="text-parchment/50 text-sm italic">No members.</p>
+        ) : (
+          <ul className="divide-y divide-gold-dim/20 border border-gold-dim/20 rounded">
+            {members.map((member) => {
+              const isAdmin = member.userId === group.admin_user_id
+              const isSelf = member.userId === user?.id
+              return (
+                <li key={member.userId} className="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <span className="text-parchment">{member.name}</span>
+                    {isAdmin && (
+                      <span className="ml-2 text-xs text-gold font-body">admin</span>
+                    )}
+                  </div>
+                  {!isSelf && (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onTransferAdmin(member)}
+                        disabled={transferAdmin.isPending}
+                        className="text-sm text-parchment/70 hover:text-gold underline disabled:opacity-50"
+                      >
+                        Make admin
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRemoveMember(member)}
+                        disabled={removeMember.isPending}
+                        className="text-sm text-red-300 hover:text-red-200 underline disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
 
       <section className="space-y-3">
         <h2 className="font-heading text-xl text-parchment">Invite link</h2>
