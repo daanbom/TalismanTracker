@@ -59,7 +59,7 @@ export default function Layout({ children }) {
           <div className="flex items-center justify-between h-16">
             {/* Left: group switcher + logo */}
             <div className="flex items-center gap-3">
-              {user && <span className="hidden md:block"><GroupSwitcher /></span>}
+              {user && <div className="hidden md:block"><GroupSwitcher /></div>}
               <Link to="/" className="flex items-center gap-2.5 text-gold hover:text-gold-light transition-colors">
                 <img src="/icons/talisman-logo.png" alt="" className="w-8 h-8" />
                 <span className="font-display text-lg tracking-wider hidden sm:block">
