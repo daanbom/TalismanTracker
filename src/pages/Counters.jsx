@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useEncounterScores } from '../hooks/useEncounterScores'
 import { useUpdateEncounterScore } from '../hooks/useUpdateEncounterScore'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import ScopeToggle from '../components/ScopeToggle'
 
 const ENCOUNTERS = [
   {
@@ -90,7 +93,15 @@ function EncounterCard({ encounter, score, onUpdate, isPending }) {
 }
 
 export default function Counters() {
-  const { data: scores = [], error, isLoading } = useEncounterScores()
+  const { activeGroupId, activeGroup } = useActiveGroup()
+  const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
+
+  useEffect(() => {
+    setScope(activeGroupId ? 'group' : 'global')
+  }, [activeGroupId])
+
+  const groupId = scope === 'group' ? activeGroupId : null
+  const { data: scores = [], error, isLoading } = useEncounterScores(groupId)
   const mutation = useUpdateEncounterScore()
 
   const handleUpdate = (encounterName, column, delta) => {
@@ -105,6 +116,9 @@ export default function Counters() {
         <h1 className="font-heading text-3xl text-parchment tracking-wide">Encounter Counters</h1>
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
+        </div>
+        <div className="mt-3 flex justify-center">
+          <ScopeToggle value={scope} onChange={setScope} groupName={activeGroup?.name ?? null} />
         </div>
         <p className="text-muted text-sm font-body mt-3">
           Running scoreboards for creature encounters.
