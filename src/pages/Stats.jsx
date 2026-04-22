@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
 import { useStatsData } from '../hooks/useStatsData'
 import { useCharacters } from '../hooks/useCharacters'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import ScopeToggle from '../components/ScopeToggle'
 import {
   OPTIONAL_EXPANSION_FILTERS,
   filterGamesByOptionalExpansions,
@@ -604,7 +606,19 @@ function DeathsTab({ games }) {
 export default function Stats() {
   const [tab, setTab] = useState('characters')
   const [optionalFilter, setOptionalFilter] = useState('all')
-  const { data: rawGames = [], error, isLoading } = useStatsData()
+  const { activeGroupId, activeGroup } = useActiveGroup()
+  const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
+
+  useEffect(() => {
+    setScope(activeGroupId ? 'group' : 'global')
+  }, [activeGroupId])
+
+  useEffect(() => {
+    setOptionalFilter('all')
+  }, [scope])
+
+  const groupId = scope === 'group' ? activeGroupId : null
+  const { data: rawGames = [], error, isLoading } = useStatsData(groupId)
   const { data: allCharacters = [] } = useCharacters()
 
   const games = useMemo(
@@ -619,8 +633,11 @@ export default function Stats() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
+        <div className="mt-3 flex justify-center">
+          <ScopeToggle value={scope} onChange={setScope} groupName={activeGroup?.name ?? null} />
+        </div>
         <p className="text-muted text-sm font-body mt-3">
-          Global breakdown of characters, endings, and expansion events.
+          {scope === 'group' ? 'Group breakdown of characters, endings, and expansion events.' : 'Global breakdown of characters, endings, and expansion events.'}
         </p>
       </div>
 
