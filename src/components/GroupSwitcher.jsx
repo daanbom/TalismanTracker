@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import { useAuth } from '../hooks/useAuth'
 import { useGroupJoinRequests } from '../hooks/useJoinRequests'
+import { getGroupSwitchDestination } from '../lib/groupNavigation'
 
 export default function GroupSwitcher({ onNavigate }) {
   const { activeGroup, groups, setActiveGroup } = useActiveGroup()
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
   const containerRef = useRef(null)
 
   useEffect(() => {
@@ -30,9 +32,21 @@ export default function GroupSwitcher({ onNavigate }) {
   const pendingCount = pendingRequests.length
 
   const choose = (id) => {
+    const nextGroup = groups.find((g) => g.id === id)
+    const destination = getGroupSwitchDestination({
+      currentPathname: location.pathname,
+      nextGroupId: nextGroup?.id ?? null,
+      nextGroupAdminUserId: nextGroup?.admin_user_id ?? null,
+      userId: user?.id ?? null,
+    })
+
     setActiveGroup(id)
     setOpen(false)
     onNavigate?.()
+
+    if (destination) {
+      navigate(destination)
+    }
   }
 
   const goCreate = () => {

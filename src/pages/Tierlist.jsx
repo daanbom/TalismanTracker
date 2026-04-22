@@ -109,7 +109,6 @@ function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDr
 
 function CharacterCard({ iconKey, name, fallback }) {
   const [errored, setErrored] = useState(false)
-  useEffect(() => { setErrored(false) }, [iconKey])
   if (errored) return fallback
   return (
     <img
@@ -139,6 +138,7 @@ function CharacterDetailPanel({ icon }) {
       </div>
       <div className="w-full max-w-lg rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70">
         <CharacterCard
+          key={icon.key}
           iconKey={icon.key}
           name={icon.name}
           fallback={
