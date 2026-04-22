@@ -1,14 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 
-export function useEncounterScores() {
+export function useEncounterScores(groupId) {
   return useQuery({
-    queryKey: ['encounterScores'],
+    queryKey: ['encounterScores', groupId ?? 'global'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('encounter_scores')
         .select('id, encounter_name, creature_wins, player_wins')
         .order('encounter_name')
+
+      if (groupId) query = query.eq('group_id', groupId)
+
+      const { data, error } = await query
       if (error) throw error
       return (data ?? []).map((row) => ({
         id: row.id,

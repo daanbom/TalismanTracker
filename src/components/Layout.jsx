@@ -57,16 +57,19 @@ export default function Layout({ children }) {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-deep/90 backdrop-blur-md border-b border-gold-dim/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 text-gold hover:text-gold-light transition-colors">
-              <img src="/icons/talisman-logo.png" alt="" className="w-8 h-8" />
-              <span className="font-display text-lg tracking-wider hidden sm:block">
-                Talisman Tracker
-              </span>
-              <span className="font-display text-lg tracking-wider sm:hidden">
-                TT
-              </span>
-            </Link>
+            {/* Left: group switcher + logo */}
+            <div className="flex items-center gap-3">
+              {user && <div className="hidden md:block"><GroupSwitcher /></div>}
+              <Link to="/" className="flex items-center gap-2.5 text-gold hover:text-gold-light transition-colors">
+                <img src="/icons/talisman-logo.png" alt="" className="w-8 h-8" />
+                <span className="font-display text-lg tracking-wider hidden sm:block">
+                  Talisman Tracker
+                </span>
+                <span className="font-display text-lg tracking-wider sm:hidden">
+                  TT
+                </span>
+              </Link>
+            </div>
 
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-6">
@@ -75,7 +78,6 @@ export default function Layout({ children }) {
                   {link.label}
                 </NavLink>
               ))}
-              {user && <GroupSwitcher />}
               {user && (
                 <button
                   onClick={handleSignOut}
@@ -104,6 +106,11 @@ export default function Layout({ children }) {
           }`}
         >
           <div className="px-4 pb-4 pt-1 space-y-1 bg-deep/95 border-t border-gold-dim/10">
+            {user && (
+              <div className="py-2 px-1 border-b border-gold-dim/10 mb-1">
+                <GroupSwitcher onNavigate={() => setMobileOpen(false)} />
+              </div>
+            )}
             {NAV_LINKS.map(link => (
               <NavLink
                 key={link.to}
@@ -121,11 +128,6 @@ export default function Layout({ children }) {
                 {link.label}
               </NavLink>
             ))}
-            {user && (
-              <div className="pt-2 pb-1 px-1">
-                <GroupSwitcher onNavigate={() => setMobileOpen(false)} />
-              </div>
-            )}
             {user && (
               <button
                 onClick={handleSignOut}
