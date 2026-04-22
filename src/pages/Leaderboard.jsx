@@ -39,6 +39,7 @@ export default function Leaderboard() {
   const [sortDir, setSortDir] = useState('desc')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScope(activeGroupId ? 'group' : 'global')
   }, [activeGroupId])
 

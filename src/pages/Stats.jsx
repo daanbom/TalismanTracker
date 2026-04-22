@@ -610,10 +610,12 @@ export default function Stats() {
   const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScope(activeGroupId ? 'group' : 'global')
   }, [activeGroupId])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOptionalFilter('all')
   }, [scope])
 
