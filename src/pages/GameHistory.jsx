@@ -1,7 +1,10 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useGames } from '../hooks/useGames'
 import { useActiveGroup } from '../hooks/useActiveGroup'
+import { useCurrentPlayer } from '../hooks/useCurrentPlayer'
 import GroupRequiredState from '../components/GroupRequiredState'
+import ScopeToggle from '../components/ScopeToggle'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -14,9 +17,13 @@ function formatDate(dateStr) {
 
 export default function GameHistory() {
   const { activeGroupId, activeGroup, isLoading: groupsLoading } = useActiveGroup()
-  const { data: games = [], error, isLoading } = useGames()
+  const { data: currentPlayer, isLoading: currentPlayerLoading } = useCurrentPlayer()
+  const [historyScope, setHistoryScope] = useState({ groupId: activeGroupId ?? null, scope: 'group' })
+  const scope = historyScope.groupId === activeGroupId ? historyScope.scope : 'group'
+  const participantPlayerId = scope === 'me' ? currentPlayer?.id ?? null : null
+  const { data: games = [], error, isLoading } = useGames(activeGroupId ?? undefined, participantPlayerId)
 
-  if (groupsLoading || isLoading) return null
+  if (groupsLoading || isLoading || currentPlayerLoading) return null
 
   if (!activeGroupId) {
     return (
@@ -26,6 +33,14 @@ export default function GameHistory() {
       />
     )
   }
+
+  const visibleGames = scope === 'me' && !currentPlayer ? [] : games
+  const summary = scope === 'me'
+    ? `You in ${activeGroup?.name ?? 'this group'}: ${visibleGames.length} games chronicled`
+    : `${activeGroup?.name ?? 'This group'}: ${visibleGames.length} games chronicled`
+  const emptyMessage = scope === 'me'
+    ? "You haven't played any games in this group yet."
+    : 'No games logged yet.'
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -39,20 +54,27 @@ export default function GameHistory() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">
-          {activeGroup ? `${activeGroup.name}: ` : ''}{games.length} games chronicled
-        </p>
+        <div className="mt-3">
+          <ScopeToggle
+            value={scope}
+            onChange={(nextScope) => setHistoryScope({ groupId: activeGroupId ?? null, scope: nextScope })}
+            groupName={activeGroup?.name ?? null}
+            leftLabel="Me"
+            leftValue="me"
+          />
+        </div>
+        <p className="text-muted text-sm font-body mt-3">{summary}</p>
       </div>
 
       {error && (
         <p className="text-danger text-sm font-body mb-4">{error.message}</p>
       )}
 
-      {games.length === 0 ? (
-        <p className="text-muted text-sm font-body italic">No games logged yet.</p>
+      {visibleGames.length === 0 ? (
+        <p className="text-muted text-sm font-body italic">{emptyMessage}</p>
       ) : (
       <div className="space-y-4">
-        {games.map((game, i) => {
+        {visibleGames.map((game, i) => {
           const winners = game.players.filter(p => p.is_winner)
           return (
             <Link

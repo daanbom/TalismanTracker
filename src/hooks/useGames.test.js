@@ -133,7 +133,7 @@ describe('useGames', () => {
           created_at: '2026-04-01T10:00:00.000Z',
           ending: null,
           players: [
-            { id: 'gp-1', characters_played: ['a'], total_toad_times: null, is_winner: false, winning_character: null, player: { id: '', name: 'Empty' } },
+            { id: 'gp-1', characters_played: ['a'], total_toad_times: null, is_winner: false, winning_character: null, player: { id: 'player-1', name: 'One' } },
           ],
           expansion_events: [],
         },
@@ -157,7 +157,7 @@ describe('useGames', () => {
 
     expect(result.queryKey).toEqual(['games', 'group-1', ''])
     expect(fromMock).toHaveBeenCalled()
-    expect(games).toHaveLength(1)
-    expect(games[0].id).toBe('game-1')
+    expect(games).toHaveLength(2)
+    expect(games.map((game) => game.id)).toEqual(['game-1', 'game-2'])
   })
 })

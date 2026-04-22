@@ -6,8 +6,8 @@ export function useGames(groupIdOverride, participantPlayerId = null) {
   const { activeGroupId, isLoading: groupsLoading } = useActiveGroup()
   const resolvedGroupId = groupIdOverride === undefined ? activeGroupId : groupIdOverride
   const explicitScope = groupIdOverride !== undefined
-  const participantScope = participantPlayerId ?? 'all-participants'
-  const hasParticipantFilter = participantScope !== 'all-participants'
+  const normalizedParticipantPlayerId = participantPlayerId ? participantPlayerId : null
+  const participantScope = normalizedParticipantPlayerId ?? 'all-participants'
 
   return useQuery({
     queryKey: ['games', resolvedGroupId === null ? 'global' : resolvedGroupId ?? 'none', participantScope],
@@ -43,7 +43,7 @@ export function useGames(groupIdOverride, participantPlayerId = null) {
       const { data, error } = await query
       if (error) throw error
 
-      const normalizedGames = data.map((g) => ({
+      const normalizedGames = (data ?? []).map((g) => ({
         id: g.id,
         title: g.title,
         date: g.date,
@@ -61,9 +61,9 @@ export function useGames(groupIdOverride, participantPlayerId = null) {
         expansion_events: g.expansion_events ?? [],
       }))
 
-      if (hasParticipantFilter) {
+      if (normalizedParticipantPlayerId) {
         return normalizedGames.filter((game) =>
-          game.players.some((gp) => gp.player?.id === participantPlayerId)
+          game.players.some((gp) => gp.player?.id === normalizedParticipantPlayerId)
         )
       }
 
