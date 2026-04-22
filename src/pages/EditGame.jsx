@@ -1,9 +1,12 @@
 import { useParams } from 'react-router-dom'
 import { useGame } from '../hooks/useGame'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import GroupRequiredState from '../components/GroupRequiredState'
 import LogGame from './LogGame'
 
 export default function EditGame() {
   const { id } = useParams()
+  const { activeGroupId, isLoading: groupsLoading } = useActiveGroup()
   const { data: game, error, isLoading } = useGame(id)
 
   if (error) {
@@ -13,7 +16,31 @@ export default function EditGame() {
       </div>
     )
   }
-  if (isLoading || !game) return null
+  if (groupsLoading || isLoading) return null
+
+  if (!activeGroupId) {
+    return (
+      <GroupRequiredState
+        title="Select a group to edit games"
+        body="Games are scoped to the active group. Pick the group that owns this game before editing it."
+      />
+    )
+  }
+  if (!game) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 text-center animate-fade-up">
+          <h1 className="font-heading text-2xl text-parchment tracking-wide">Game not found</h1>
+          <div className="ornament-divider mt-3">
+            <span className="text-gold-dim">&#9670;</span>
+          </div>
+          <p className="text-muted font-body mt-4">
+            This game is not in the active group, or it no longer exists.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const initialData = {
     title: game.title ?? '',
