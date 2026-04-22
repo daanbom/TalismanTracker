@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useGames } from '../hooks/useGames'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import GroupRequiredState from '../components/GroupRequiredState'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -11,7 +13,19 @@ function formatDate(dateStr) {
 }
 
 export default function GameHistory() {
-  const { data: games = [], error } = useGames()
+  const { activeGroupId, activeGroup, isLoading: groupsLoading } = useActiveGroup()
+  const { data: games = [], error, isLoading } = useGames()
+
+  if (groupsLoading || isLoading) return null
+
+  if (!activeGroupId) {
+    return (
+      <GroupRequiredState
+        title="Select a group to view game history"
+        body="Game history is now scoped to the active group. Pick a group to browse its sessions."
+      />
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -25,7 +39,9 @@ export default function GameHistory() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">{games.length} games chronicled</p>
+        <p className="text-muted text-sm font-body mt-3">
+          {activeGroup ? `${activeGroup.name}: ` : ''}{games.length} games chronicled
+        </p>
       </div>
 
       {error && (

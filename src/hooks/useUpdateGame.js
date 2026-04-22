@@ -1,12 +1,19 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { deleteChildRows, insertChildRows } from '../lib/gameWrites'
+import { useActiveGroup } from './useActiveGroup'
 
 export function useUpdateGame() {
   const queryClient = useQueryClient()
+  const { activeGroupId } = useActiveGroup()
+
   return useMutation({
     mutationFn: async ({ gameId, formState }) => {
-      const { error: gErr } = await supabase
+      if (!activeGroupId) {
+        throw new Error('Select an active group before editing a game.')
+      }
+
+      const { data: updatedGame, error: gErr } = await supabase
         .from('games')
         .update({
           title: formState.title.trim(),
@@ -16,8 +23,12 @@ export function useUpdateGame() {
           optional_expansions: formState.optional_expansions ?? [],
           updated_at: new Date().toISOString(),
         })
+        .eq('group_id', activeGroupId)
         .eq('id', gameId)
+        .select('id')
+        .maybeSingle()
       if (gErr) throw gErr
+      if (!updatedGame) throw new Error('Game not found in the active group.')
 
       await deleteChildRows(gameId)
       await insertChildRows(gameId, formState)

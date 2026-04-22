@@ -1,6 +1,8 @@
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useGame } from '../hooks/useGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import GroupRequiredState from '../components/GroupRequiredState'
 import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
 
 function formatDate(dateStr) {
@@ -45,7 +47,8 @@ function groupEventsByPlayer(events) {
 export default function GameDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data: game, error } = useGame(id)
+  const { activeGroupId, isLoading: groupsLoading } = useActiveGroup()
+  const { data: game, error, isLoading } = useGame(id)
   const deleteGame = useDeleteGame()
 
   const handleDelete = () => {
@@ -62,7 +65,36 @@ export default function GameDetail() {
       </div>
     )
   }
-  if (!game) return null
+  if (groupsLoading || isLoading) return null
+
+  if (!activeGroupId) {
+    return (
+      <GroupRequiredState
+        title="Select a group to view game details"
+        body="Game details are scoped to the active group. Pick the group that owns this session to continue."
+      />
+    )
+  }
+  if (!game) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 text-center animate-fade-up">
+          <h1 className="font-heading text-2xl text-parchment tracking-wide">Game not found</h1>
+          <div className="ornament-divider mt-3">
+            <span className="text-gold-dim">&#9670;</span>
+          </div>
+          <p className="text-muted font-body mt-4">
+            This game is not in the active group, or it no longer exists.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <Link to="/history" className="btn-outline text-sm">
+              Back to History
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const winners = game.players.filter(p => p.is_winner)
 
