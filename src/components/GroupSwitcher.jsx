@@ -51,7 +51,7 @@ export default function GroupSwitcher({ onNavigate }) {
         {label} <span aria-hidden="true">▾</span>
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-56 bg-deep border border-gold-dim/40 rounded shadow-lg z-50 overflow-hidden">
+        <div className="absolute left-0 mt-2 w-56 bg-deep border border-gold-dim/40 rounded shadow-lg z-50 overflow-hidden">
           {groups.length === 0 && (
             <div className="px-3 py-2 text-xs text-parchment/50 font-body italic">
               You're not in any groups yet.
@@ -71,14 +71,6 @@ export default function GroupSwitcher({ onNavigate }) {
               {g.name}
             </button>
           ))}
-          <button
-            type="button"
-            disabled
-            title="Global view — coming soon"
-            className="w-full text-left px-3 py-2 text-sm font-heading text-parchment/40 cursor-not-allowed"
-          >
-            Global (disabled)
-          </button>
           {activeGroup && isAdmin && (
             <button
               type="button"
