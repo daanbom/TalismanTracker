@@ -120,4 +120,44 @@ describe('useGames', () => {
     expect(games).toHaveLength(2)
     expect(games.map((game) => game.id)).toEqual(['game-1', 'game-2'])
   })
+
+  it('uses the active group when no explicit group override is passed', async () => {
+    useActiveGroupMock.mockReturnValue({ activeGroupId: 'group-1', isLoading: false })
+    fromMock.mockReturnValue(
+      createQueryResult([
+        {
+          id: 'game-1',
+          title: 'First',
+          date: '2026-04-01',
+          notes: null,
+          created_at: '2026-04-01T10:00:00.000Z',
+          ending: null,
+          players: [
+            { id: 'gp-1', characters_played: ['a'], total_toad_times: null, is_winner: false, winning_character: null, player: { id: '', name: 'Empty' } },
+          ],
+          expansion_events: [],
+        },
+        {
+          id: 'game-2',
+          title: 'Second',
+          date: '2026-04-02',
+          notes: null,
+          created_at: '2026-04-02T10:00:00.000Z',
+          ending: null,
+          players: [
+            { id: 'gp-2', characters_played: ['b'], total_toad_times: null, is_winner: false, winning_character: null, player: { id: 'player-2', name: 'Two' } },
+          ],
+          expansion_events: [],
+        },
+      ])
+    )
+
+    const result = useGames(undefined, '')
+    const games = await result.queryFn()
+
+    expect(result.queryKey).toEqual(['games', 'group-1', ''])
+    expect(fromMock).toHaveBeenCalled()
+    expect(games).toHaveLength(1)
+    expect(games[0].id).toBe('game-1')
+  })
 })
