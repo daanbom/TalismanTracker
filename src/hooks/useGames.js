@@ -2,13 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { useActiveGroup } from './useActiveGroup'
 
-export function useGames(groupIdOverride) {
+export function useGames(groupIdOverride, participantPlayerId = null) {
   const { activeGroupId, isLoading: groupsLoading } = useActiveGroup()
   const resolvedGroupId = groupIdOverride === undefined ? activeGroupId : groupIdOverride
   const explicitScope = groupIdOverride !== undefined
 
   return useQuery({
-    queryKey: ['games', resolvedGroupId === null ? 'global' : resolvedGroupId ?? 'none'],
+    queryKey: ['games', resolvedGroupId === null ? 'global' : resolvedGroupId ?? 'none', participantPlayerId ?? 'all-participants'],
     enabled: explicitScope || !groupsLoading,
     queryFn: async () => {
       if (!explicitScope && !resolvedGroupId) return []
@@ -40,7 +40,8 @@ export function useGames(groupIdOverride) {
 
       const { data, error } = await query
       if (error) throw error
-      return data.map((g) => ({
+
+      const normalizedGames = data.map((g) => ({
         id: g.id,
         title: g.title,
         date: g.date,
@@ -57,6 +58,14 @@ export function useGames(groupIdOverride) {
         })),
         expansion_events: g.expansion_events ?? [],
       }))
+
+      if (participantPlayerId) {
+        return normalizedGames.filter((game) =>
+          game.players.some((gp) => gp.player?.id === participantPlayerId)
+        )
+      }
+
+      return normalizedGames
     },
   })
 }
