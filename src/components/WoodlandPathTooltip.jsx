@@ -8,7 +8,6 @@ const MARGIN = 8
 
 export function WoodlandPathTooltip({ name, children }) {
   const [anchor, setAnchor] = useState(null)
-  const [pos, setPos] = useState(null)
   const tooltipRef = useRef(null)
   const data = WOODLAND_PATHS.find(p => p.name === name)
 
@@ -26,7 +25,9 @@ export function WoodlandPathTooltip({ name, children }) {
     if (top < MARGIN) top = anchor.bottom + GAP
     if (top + tipH + MARGIN > vh) top = Math.max(MARGIN, vh - tipH - MARGIN)
 
-    setPos({ left, top })
+    tooltipRef.current.style.left = `${left}px`
+    tooltipRef.current.style.top = `${top}px`
+    tooltipRef.current.style.visibility = 'visible'
   }, [anchor])
 
   return (
@@ -36,7 +37,7 @@ export function WoodlandPathTooltip({ name, children }) {
         const rect = e.currentTarget.getBoundingClientRect()
         setAnchor({ left: rect.left, top: rect.top, bottom: rect.bottom })
       }}
-      onMouseLeave={() => { setAnchor(null); setPos(null) }}
+      onMouseLeave={() => { setAnchor(null) }}
     >
       {children}
       {anchor && createPortal(
@@ -44,10 +45,10 @@ export function WoodlandPathTooltip({ name, children }) {
           ref={tooltipRef}
           style={{
             position: 'fixed',
-            left: pos ? pos.left : anchor.left,
-            top: pos ? pos.top : anchor.top,
+            left: anchor.left,
+            top: anchor.top,
             width: TOOLTIP_WIDTH,
-            visibility: pos ? 'visible' : 'hidden',
+            visibility: 'hidden',
             zIndex: 9999,
             pointerEvents: 'none',
           }}

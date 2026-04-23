@@ -5,8 +5,10 @@ import { AVAILABLE_ICONS } from '../data/availableIcons'
 
 const iconExtMap = new Map(AVAILABLE_ICONS.map(i => [i.key, i.ext]))
 import { usePlayers } from '../hooks/usePlayers'
+import { useCurrentPlayer } from '../hooks/useCurrentPlayer'
 import { useTierlist, EMPTY_TIERS } from '../hooks/useTierlist'
 import { useSaveTierlist } from '../hooks/useSaveTierlist'
+import { canEditTierlist } from '../lib/accessControl'
 
 const TIERS = ['S', 'A', 'B', 'C', 'D', 'F']
 
@@ -56,9 +58,19 @@ function CharacterImage({ iconKey, name, className, fallbackTextSize = 'text-xs'
   )
 }
 
-function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDragging, isPreviewed, dropSide }) {
+function CharacterTile({
+  icon,
+  onDragStart,
+  onDragEnd,
+  onHover,
+  onTileDrop,
+  isDragging,
+  isPreviewed,
+  dropSide,
+  isReadOnly = false,
+}) {
   const handleDragOver = e => {
-    if (!onTileDrop) return
+    if (!onTileDrop || isReadOnly) return
     e.preventDefault()
     e.stopPropagation()
     e.dataTransfer.dropEffect = 'move'
@@ -67,7 +79,7 @@ function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDr
     onTileDrop.hover(icon.key, side)
   }
   const handleDrop = e => {
-    if (!onTileDrop) return
+    if (!onTileDrop || isReadOnly) return
     e.preventDefault()
     e.stopPropagation()
     const rect = e.currentTarget.getBoundingClientRect()
@@ -79,8 +91,9 @@ function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDr
       {dropSide === 'before' && <div className="absolute -left-1 top-0 bottom-0 w-0.5 bg-gold rounded-full pointer-events-none" />}
       {dropSide === 'after' && <div className="absolute -right-1 top-0 bottom-0 w-0.5 bg-gold rounded-full pointer-events-none" />}
       <div
-        draggable
+        draggable={!isReadOnly}
         onDragStart={e => {
+          if (isReadOnly) return
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', icon.key)
           onDragStart(icon.key)
@@ -90,10 +103,10 @@ function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDr
         onDrop={handleDrop}
         onMouseEnter={() => onHover(icon.key)}
         onFocus={() => onHover(icon.key)}
-        tabIndex={0}
+        tabIndex={isReadOnly ? -1 : 0}
         className={`w-14 h-14 rounded-lg overflow-hidden border bg-deep cursor-grab active:cursor-grabbing transition-colors ${
           isPreviewed ? 'border-gold ring-1 ring-gold/40' : 'border-gold-dim/30 hover:border-gold/60'
-        } ${isDragging ? 'opacity-40' : ''}`}
+        } ${isDragging ? 'opacity-40' : ''} ${isReadOnly ? 'cursor-default active:cursor-default' : ''}`}
         title={icon.name}
       >
         <CharacterImage
@@ -109,7 +122,6 @@ function CharacterTile({ icon, onDragStart, onDragEnd, onHover, onTileDrop, isDr
 
 function CharacterCard({ iconKey, name, fallback }) {
   const [errored, setErrored] = useState(false)
-  useEffect(() => { setErrored(false) }, [iconKey])
   if (errored) return fallback
   return (
     <img
@@ -139,6 +151,7 @@ function CharacterDetailPanel({ icon }) {
       </div>
       <div className="w-full max-w-lg rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70">
         <CharacterCard
+          key={icon.key}
           iconKey={icon.key}
           name={icon.name}
           fallback={
@@ -155,7 +168,22 @@ function CharacterDetailPanel({ icon }) {
   )
 }
 
-function TierRow({ tier, iconKeys, iconsByKey, onDrop, onDragOver, onDragStart, onDragEnd, onHover, onTileHover, dropTarget, draggingKey, previewKey, isOver }) {
+function TierRow({
+  tier,
+  iconKeys,
+  iconsByKey,
+  onDrop,
+  onDragOver,
+  onDragStart,
+  onDragEnd,
+  onHover,
+  onTileHover,
+  dropTarget,
+  draggingKey,
+  previewKey,
+  isOver,
+  isReadOnly = false,
+}) {
   const style = TIER_STYLES[tier]
   const tileDropApi = {
     hover: (beforeKey, side) => onTileHover(tier, beforeKey, side),
@@ -163,8 +191,14 @@ function TierRow({ tier, iconKeys, iconsByKey, onDrop, onDragOver, onDragStart, 
   }
   return (
     <div
-      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver(tier) }}
-      onDrop={e => { e.preventDefault(); onDrop(tier) }}
+      onDragOver={e => {
+        if (isReadOnly) return
+        e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver(tier)
+      }}
+      onDrop={e => {
+        if (isReadOnly) return
+        e.preventDefault(); onDrop(tier)
+      }}
       className={`flex items-stretch border rounded-lg overflow-hidden transition-colors ${style.row} ${isOver ? 'ring-2 ring-gold/60' : ''}`}
     >
       <div className={`flex items-center justify-center w-16 font-display text-3xl tracking-wider border-r ${style.label}`}>
@@ -189,6 +223,7 @@ function TierRow({ tier, iconKeys, iconsByKey, onDrop, onDragOver, onDragStart, 
                 isDragging={draggingKey === key}
                 isPreviewed={previewKey === key}
                 dropSide={isDropTargetTile ? dropTarget.side : null}
+                isReadOnly={isReadOnly}
               />
             )
           })
@@ -198,11 +233,29 @@ function TierRow({ tier, iconKeys, iconsByKey, onDrop, onDragOver, onDragStart, 
   )
 }
 
-function Pool({ iconKeys, iconsByKey, onDrop, onDragOver, onDragStart, onDragEnd, onHover, draggingKey, previewKey, isOver }) {
+function Pool({
+  iconKeys,
+  iconsByKey,
+  onDrop,
+  onDragOver,
+  onDragStart,
+  onDragEnd,
+  onHover,
+  draggingKey,
+  previewKey,
+  isOver,
+  isReadOnly = false,
+}) {
   return (
     <div
-      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver('pool') }}
-      onDrop={e => { e.preventDefault(); onDrop('pool') }}
+      onDragOver={e => {
+        if (isReadOnly) return
+        e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver('pool')
+      }}
+      onDrop={e => {
+        if (isReadOnly) return
+        e.preventDefault(); onDrop('pool')
+      }}
       className={`bg-surface border border-gold-dim/20 rounded-xl p-4 transition-colors ${isOver ? 'ring-2 ring-gold/60' : ''}`}
     >
       <div className="flex items-center justify-between mb-3">
@@ -225,6 +278,7 @@ function Pool({ iconKeys, iconsByKey, onDrop, onDragOver, onDragStart, onDragEnd
                 onHover={onHover}
                 isDragging={draggingKey === key}
                 isPreviewed={previewKey === key}
+                isReadOnly={isReadOnly}
               />
             )
           })
@@ -239,14 +293,17 @@ export default function Tierlist() {
   const navigate = useNavigate()
 
   const playersQuery = usePlayers()
+  const { data: currentPlayer, isLoading: currentPlayerLoading } = useCurrentPlayer()
+  const isPlayerVisible = (playersQuery.data ?? []).some(p => p.id === playerId)
   const iconsQuery = useIcons()
-  const tierlistQuery = useTierlist(playerId)
+  const tierlistQuery = useTierlist(playerId, { enabled: isPlayerVisible })
   const save = useSaveTierlist()
 
   const player = useMemo(
     () => (playersQuery.data ?? []).find(p => p.id === playerId),
     [playersQuery.data, playerId],
   )
+  const canEdit = canEditTierlist({ currentPlayer, playerId })
 
   const iconsByKey = useMemo(() => {
     const map = new Map()
@@ -363,6 +420,7 @@ export default function Tierlist() {
   }
 
   const handleSave = () => {
+    if (!canEdit) return
     save.mutate(
       { playerId, tiers },
       { onSuccess: () => setIsDirty(false) },
@@ -388,7 +446,11 @@ export default function Tierlist() {
     )
   }
 
-  const isLoading = playersQuery.isLoading || iconsQuery.isLoading || tierlistQuery.isLoading
+  const isLoading =
+    playersQuery.isLoading ||
+    iconsQuery.isLoading ||
+    currentPlayerLoading ||
+    (isPlayerVisible && tierlistQuery.isLoading)
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -405,18 +467,24 @@ export default function Tierlist() {
               {player ? `${player.name}'s Tierlist` : 'Tierlist'}
             </h1>
             <p className="text-muted text-sm font-body mt-1">
-              Drag characters between tiers. Hover a portrait for details.
+              {canEdit
+                ? 'Drag characters between tiers. Hover a portrait for details.'
+                : 'Read only view. Only the tierlist owner can edit.'}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            {isDirty && <span className="text-xs font-body text-gold-dim italic">Unsaved changes</span>}
-            <button
-              onClick={handleSave}
-              disabled={!isDirty || save.isPending}
-              className="btn-gold text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
-            >
-              {save.isPending ? 'Saving...' : 'Save Tierlist'}
-            </button>
+            {canEdit && isDirty && <span className="text-xs font-body text-gold-dim italic">Unsaved changes</span>}
+            {canEdit ? (
+              <button
+                onClick={handleSave}
+                disabled={!isDirty || save.isPending}
+                className="btn-gold text-sm disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:transform-none"
+              >
+                {save.isPending ? 'Saving...' : 'Save Tierlist'}
+              </button>
+            ) : (
+              <span className="text-xs font-body text-muted">No permission to edit</span>
+            )}
           </div>
         </div>
         <div className="ornament-divider mt-4">
@@ -448,6 +516,7 @@ export default function Tierlist() {
               draggingKey={draggingKey}
               previewKey={previewKey}
               isOver={overZone === t}
+              isReadOnly={!canEdit}
             />
           ))}
 
@@ -463,6 +532,7 @@ export default function Tierlist() {
               draggingKey={draggingKey}
               previewKey={previewKey}
               isOver={overZone === 'pool'}
+              isReadOnly={!canEdit}
             />
           </div>
 

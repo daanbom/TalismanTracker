@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 
-export function useStatsData() {
+export function useStatsData(groupId) {
   return useQuery({
-    queryKey: ['stats'],
+    queryKey: ['stats', groupId ?? 'global'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('games')
         .select(`
           id,
@@ -35,6 +35,10 @@ export function useStatsData() {
             killed_by:players!game_player_deaths_killed_by_fkey ( id, name )
           )
         `)
+
+      if (groupId) query = query.eq('group_id', groupId)
+
+      const { data, error } = await query
       if (error) throw error
       return (data ?? []).map(game => {
         const allDeaths = game.deaths ?? []

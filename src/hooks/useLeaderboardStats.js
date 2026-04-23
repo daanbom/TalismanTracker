@@ -2,26 +2,44 @@ import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { computeLeaderboard } from '../lib/statsHelpers'
 
-export function useLeaderboardStats() {
+export function useLeaderboardStats(groupId) {
   return useQuery({
-    queryKey: ['leaderboardStats'],
+    queryKey: ['leaderboardStats', groupId ?? 'global'],
     queryFn: async () => {
-      const [gpResult, deathResult] = await Promise.all([
-        supabase
-          .from('game_players')
-          .select(`
-            game_id,
-            characters_played,
-            total_toad_times,
-            is_winner,
-            winning_character,
-            player:players ( id, name ),
-            game:games ( id, created_at )
-          `),
-        supabase
-          .from('game_player_deaths')
-          .select('game_id, player_id, killed_by_player_id, death_type:death_types(name)'),
-      ])
+      let gameIds = null
+
+      if (groupId) {
+        const { data: gamesData, error: gamesError } = await supabase
+          .from('games')
+          .select('id')
+          .eq('group_id', groupId)
+        if (gamesError) throw gamesError
+        gameIds = gamesData.map(g => g.id)
+        if (gameIds.length === 0) return []
+      }
+
+      let gpQuery = supabase
+        .from('game_players')
+        .select(`
+          game_id,
+          characters_played,
+          total_toad_times,
+          is_winner,
+          winning_character,
+          player:players ( id, name ),
+          game:games ( id, created_at )
+        `)
+
+      let deathQuery = supabase
+        .from('game_player_deaths')
+        .select('game_id, player_id, killed_by_player_id, death_type:death_types(name)')
+
+      if (gameIds) {
+        gpQuery = gpQuery.in('game_id', gameIds)
+        deathQuery = deathQuery.in('game_id', gameIds)
+      }
+
+      const [gpResult, deathResult] = await Promise.all([gpQuery, deathQuery])
       if (gpResult.error) throw gpResult.error
       if (deathResult.error) throw deathResult.error
 

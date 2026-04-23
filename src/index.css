@@ -299,22 +299,20 @@ body::before {
 .hero-ring-spin {
   transform-box: view-box;
   transform-origin: 200px 200px;
-  animation: ringSpin 180s linear infinite;
+  animation: none;
 }
 .hero-ring-spin-reverse {
   transform-box: view-box;
   transform-origin: 200px 200px;
-  animation: ringSpinReverse 240s linear infinite;
+  animation: none;
 }
 
 @keyframes medallionBreathe {
   0%, 100% {
-    opacity: 0.4;
-    filter: drop-shadow(0 0 18px rgba(201, 168, 76, 0.12));
+    opacity: 0.42;
   }
   50% {
-    opacity: 0.55;
-    filter: drop-shadow(0 0 32px rgba(201, 168, 76, 0.28));
+    opacity: 0.5;
   }
 }
 .hero-medallion-svg {
@@ -331,15 +329,26 @@ body::before {
 .board-spin-slow {
   transform-box: view-box;
   transform-origin: 400px 400px;
-  animation: boardSpinSlow 300s linear infinite;
+  animation: none;
 }
 .board-spin-rev {
   transform-box: view-box;
   transform-origin: 400px 400px;
-  animation: boardSpinRev 220s linear infinite;
+  animation: none;
 }
 .hero-board-svg {
-  animation: medallionBreathe 9s ease-in-out infinite;
+  opacity: 0.92;
+}
+
+@media (prefers-reduced-motion: reduce), (update: slow) {
+  .hero-ring-spin,
+  .hero-ring-spin-reverse,
+  .hero-medallion-svg,
+  .board-spin-slow,
+  .board-spin-rev,
+  .animate-glow {
+    animation: none !important;
+  }
 }
 
 /* Heraldic portrait frame (player avatars, lg variant) */

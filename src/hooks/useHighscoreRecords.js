@@ -20,31 +20,55 @@ const DERIVED_CATEGORIES = {
   most_toad_times: 'total_toad_times',
 }
 
-export function useHighscoreRecords() {
+export function useHighscoreRecords(groupId) {
   return useQuery({
-    queryKey: ['highscoreRecords'],
+    queryKey: ['highscoreRecords', groupId ?? 'global'],
     queryFn: async () => {
-      const [hsResult, gpResult, deathResult] = await Promise.all([
-        supabase
-          .from('game_highscores')
-          .select(`
-            category,
-            value,
-            player:players ( id, name ),
-            game:games ( id, date )
-          `),
-        supabase
-          .from('game_players')
-          .select(`
-            game_id,
-            total_toad_times,
-            player:players ( id, name ),
-            game:games ( id, date )
-          `),
-        supabase
-          .from('game_player_deaths')
-          .select('game_id, player_id'),
-      ])
+      let gameIds = null
+
+      if (groupId) {
+        const { data: gamesData, error: gamesError } = await supabase
+          .from('games')
+          .select('id')
+          .eq('group_id', groupId)
+        if (gamesError) throw gamesError
+        gameIds = gamesData.map(g => g.id)
+        if (gameIds.length === 0) return Object.keys(CATEGORY_LABELS).map((category) => ({
+          category,
+          label: CATEGORY_LABELS[category],
+          entries: [],
+        }))
+      }
+
+      let hsQuery = supabase
+        .from('game_highscores')
+        .select(`
+          category,
+          value,
+          player:players ( id, name ),
+          game:games ( id, date )
+        `)
+
+      let gpQuery = supabase
+        .from('game_players')
+        .select(`
+          game_id,
+          total_toad_times,
+          player:players ( id, name ),
+          game:games ( id, date )
+        `)
+
+      let deathQuery = supabase
+        .from('game_player_deaths')
+        .select('game_id, player_id')
+
+      if (gameIds) {
+        hsQuery = hsQuery.in('game_id', gameIds)
+        gpQuery = gpQuery.in('game_id', gameIds)
+        deathQuery = deathQuery.in('game_id', gameIds)
+      }
+
+      const [hsResult, gpResult, deathResult] = await Promise.all([hsQuery, gpQuery, deathQuery])
 
       if (hsResult.error) throw hsResult.error
       if (gpResult.error) throw gpResult.error
@@ -56,7 +80,7 @@ export function useHighscoreRecords() {
         deathCounts.set(key, (deathCounts.get(key) ?? 0) + 1)
       }
 
-      gpResult.data = gpResult.data.map(gp => ({
+      const gpWithDeaths = gpResult.data.map(gp => ({
         ...gp,
         total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
       }))
@@ -69,7 +93,7 @@ export function useHighscoreRecords() {
 
       for (const [category, column] of Object.entries(DERIVED_CATEGORIES)) {
         const rows = []
-        for (const gp of gpResult.data) {
+        for (const gp of gpWithDeaths) {
           const value = Number(gp[column] ?? 0)
           if (value <= 0) continue
           rows.push({ category, value, player: gp.player, game: gp.game })

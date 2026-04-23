@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useHighscoreRecords } from '../hooks/useHighscoreRecords'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import ScopeToggle from '../components/ScopeToggle'
 
 const CATEGORY_ICONS = {
   most_gold: (
@@ -76,7 +79,16 @@ const CATEGORY_ICONS = {
 }
 
 export default function HighscoresBoard() {
-  const { data: records = [], error } = useHighscoreRecords()
+  const { activeGroupId, activeGroup } = useActiveGroup()
+  const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScope(activeGroupId ? 'group' : 'global')
+  }, [activeGroupId])
+
+  const groupId = scope === 'group' ? activeGroupId : null
+  const { data: records = [], isLoading, error } = useHighscoreRecords(groupId)
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 animate-fade-up text-center">
@@ -84,68 +96,77 @@ export default function HighscoresBoard() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">All-time per-game records across all sessions.</p>
+        <div className="mt-3 flex justify-center">
+          <ScopeToggle value={scope} onChange={setScope} groupName={activeGroup?.name ?? null} />
+        </div>
+        <p className="text-muted text-sm font-body mt-3">
+          {scope === 'group' ? 'Per-game records within this group.' : 'All-time per-game records across all sessions.'}
+        </p>
       </div>
 
       {error && (
         <p className="text-danger text-sm font-body mb-4">{error.message}</p>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {records.map((record, i) => {
-          const empty = record.entries.length === 0
-          const [gold] = record.entries
-          return (
-            <div
-              key={record.category}
-              className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 animate-fade-up delay-${i + 2}`}
-            >
-              <div className="flex items-center justify-between mb-3 gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="text-gold/50 shrink-0">{CATEGORY_ICONS[record.category]}</div>
-                  <h3 className="font-heading text-parchment text-xl tracking-wide truncate">{record.label}</h3>
+      {isLoading ? (
+        <p className="text-muted text-sm font-body italic text-center">Loading...</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {records.map((record, i) => {
+            const empty = record.entries.length === 0
+            const [gold] = record.entries
+            return (
+              <div
+                key={record.category}
+                className={`card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 animate-fade-up delay-${i + 2}`}
+              >
+                <div className="flex items-center justify-between mb-3 gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="text-gold/50 shrink-0">{CATEGORY_ICONS[record.category]}</div>
+                    <h3 className="font-heading text-parchment text-xl tracking-wide truncate">{record.label}</h3>
+                  </div>
+                  <span className={`font-display text-3xl tracking-wider leading-none shrink-0 ${empty ? 'text-muted/40' : 'text-gold'}`}>
+                    {empty ? '×' : gold.value}
+                  </span>
                 </div>
-                <span className={`font-display text-3xl tracking-wider leading-none shrink-0 ${empty ? 'text-muted/40' : 'text-gold'}`}>
-                  {empty ? '×' : gold.value}
-                </span>
-              </div>
-              {empty && <p className="text-muted text-sm font-body mb-3">No record yet</p>}
+                {empty && <p className="text-muted text-sm font-body mb-3">No record yet</p>}
 
-              {!empty && (
-                <div className="border-t border-gold-dim/10 pt-3">
-                  <ol className="space-y-1.5">
-                    {record.entries.map((entry, idx) => (
-                      <li key={entry.rank} className={`flex items-center justify-between text-sm font-body px-2 py-1 rounded ${idx % 2 === 0 ? 'bg-gold/[0.04]' : ''}`}>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-4 shrink-0 text-right font-display ${entry.rank === 1 ? 'text-gold' : 'text-muted/60'}`}>
-                            {entry.rank}
-                          </span>
-                          <span className={`truncate ${entry.rank === 1 ? 'text-gold/90' : 'text-parchment/70'}`}>
-                            {entry.player ?? 'Talisman'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-3 shrink-0 ml-2">
-                          <span className={`font-display ${entry.rank === 1 ? 'text-parchment' : 'text-muted'}`}>
-                            {entry.value}
-                          </span>
-                          {entry.game_id && (
-                            <Link
-                              to={`/games/${entry.game_id}`}
-                              className="text-muted/50 hover:text-teal-light transition-colors text-xs"
-                            >
-                              {new Date(entry.game_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                            </Link>
-                          )}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+                {!empty && (
+                  <div className="border-t border-gold-dim/10 pt-3">
+                    <ol className="space-y-1.5">
+                      {record.entries.map((entry, idx) => (
+                        <li key={entry.rank} className={`flex items-center justify-between text-sm font-body px-2 py-1 rounded ${idx % 2 === 0 ? 'bg-gold/[0.04]' : ''}`}>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`w-4 shrink-0 text-right font-display ${entry.rank === 1 ? 'text-gold' : 'text-muted/60'}`}>
+                              {entry.rank}
+                            </span>
+                            <span className={`truncate ${entry.rank === 1 ? 'text-gold/90' : 'text-parchment/70'}`}>
+                              {entry.player ?? 'Talisman'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 ml-2">
+                            <span className={`font-display ${entry.rank === 1 ? 'text-parchment' : 'text-muted'}`}>
+                              {entry.value}
+                            </span>
+                            {entry.game_id && (
+                              <Link
+                                to={`/games/${entry.game_id}`}
+                                className="text-muted/50 hover:text-teal-light transition-colors text-xs"
+                              >
+                                {new Date(entry.game_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </Link>
+                            )}
+                          </div>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Empty state hint */}
       <div className="mt-12 text-center">

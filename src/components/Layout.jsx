@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import GroupSwitcher from './GroupSwitcher'
+import PendingInvitesBanner from './PendingInvitesBanner'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -34,6 +37,12 @@ function HamburgerIcon({ open }) {
 
 export default function Layout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { user, signOut } = useAuth()
+
+  const handleSignOut = async () => {
+    setMobileOpen(false)
+    await signOut()
+  }
 
   const linkClasses = ({ isActive }) =>
     `font-heading text-sm tracking-wide transition-colors duration-200 ${
@@ -48,16 +57,19 @@ export default function Layout({ children }) {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-deep/90 backdrop-blur-md border-b border-gold-dim/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 text-gold hover:text-gold-light transition-colors">
-              <img src="/icons/talisman-logo.png" alt="" className="w-8 h-8" />
-              <span className="font-display text-lg tracking-wider hidden sm:block">
-                Talisman Tracker
-              </span>
-              <span className="font-display text-lg tracking-wider sm:hidden">
-                TT
-              </span>
-            </Link>
+            {/* Left: group switcher + logo */}
+            <div className="flex items-center gap-3">
+              {user && <div className="hidden md:block"><GroupSwitcher /></div>}
+              <Link to="/" className="flex items-center gap-2.5 text-gold hover:text-gold-light transition-colors">
+                <img src="/icons/talisman-logo.png" alt="" className="w-8 h-8" />
+                <span className="font-display text-lg tracking-wider hidden sm:block">
+                  Talisman Tracker
+                </span>
+                <span className="font-display text-lg tracking-wider sm:hidden">
+                  TT
+                </span>
+              </Link>
+            </div>
 
             {/* Desktop nav */}
             <div className="hidden md:flex items-center gap-6">
@@ -66,6 +78,14 @@ export default function Layout({ children }) {
                   {link.label}
                 </NavLink>
               ))}
+              {user && (
+                <button
+                  onClick={handleSignOut}
+                  className="font-heading text-sm tracking-wide text-parchment/70 hover:text-gold-light transition-colors"
+                >
+                  Logout
+                </button>
+              )}
             </div>
 
             {/* Mobile hamburger */}
@@ -86,6 +106,11 @@ export default function Layout({ children }) {
           }`}
         >
           <div className="px-4 pb-4 pt-1 space-y-1 bg-deep/95 border-t border-gold-dim/10">
+            {user && (
+              <div className="py-2 px-1 border-b border-gold-dim/10 mb-1">
+                <GroupSwitcher onNavigate={() => setMobileOpen(false)} />
+              </div>
+            )}
             {NAV_LINKS.map(link => (
               <NavLink
                 key={link.to}
@@ -103,12 +128,21 @@ export default function Layout({ children }) {
                 {link.label}
               </NavLink>
             ))}
+            {user && (
+              <button
+                onClick={handleSignOut}
+                className="block w-full text-left py-2.5 px-3 rounded-lg font-heading text-sm tracking-wide text-parchment/70 hover:text-gold-light hover:bg-gold/5 transition-colors"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </div>
       </nav>
 
       {/* Page content */}
       <main className="flex-1 pt-16">
+        <PendingInvitesBanner />
         {children}
       </main>
 

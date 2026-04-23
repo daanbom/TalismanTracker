@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
+import { useActiveGroup } from '../hooks/useActiveGroup'
+import ScopeToggle from '../components/ScopeToggle'
 
 const TALISMAN_SHOW = new Set(['name', 'games_played', 'wins', 'win_rate'])
 
@@ -31,9 +33,18 @@ function SortIcon({ active, direction }) {
 }
 
 export default function Leaderboard() {
+  const { activeGroupId, activeGroup } = useActiveGroup()
+  const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
   const [sortKey, setSortKey] = useState('wins')
   const [sortDir, setSortDir] = useState('desc')
-  const { data: rows = [], error } = useLeaderboardStats()
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setScope(activeGroupId ? 'group' : 'global')
+  }, [activeGroupId])
+
+  const groupId = scope === 'group' ? activeGroupId : null
+  const { data: rows = [], error, isLoading } = useLeaderboardStats(groupId)
 
   const sorted = [...rows].sort((a, b) => {
     const aVal = a[sortKey]
@@ -58,14 +69,17 @@ export default function Leaderboard() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
-        <p className="text-muted text-sm font-body mt-3">Across all logged games. Click any column to sort.</p>
+        <div className="mt-3 flex justify-center">
+          <ScopeToggle value={scope} onChange={setScope} groupName={activeGroup?.name ?? null} />
+        </div>
+        <p className="text-muted text-sm font-body mt-3">Click any column to sort.</p>
       </div>
 
       {error && (
         <p className="text-danger text-sm font-body mb-4">{error.message}</p>
       )}
 
-      {rows.length === 0 ? (
+      {!isLoading && rows.length === 0 ? (
         <p className="text-muted text-sm font-body italic text-center">No stats yet. Log a game to populate the leaderboard.</p>
       ) : (
       <>

@@ -48,7 +48,7 @@ function BoardBackdrop() {
   return (
     <svg
       viewBox="0 0 800 800"
-      className="hero-board-svg w-[min(140vw,1200px)] h-auto"
+      className="hero-board-svg w-[min(120vw,960px)] h-auto"
       aria-hidden
     >
       <defs>
@@ -308,7 +308,7 @@ const QUICK_LINKS = [
 ]
 
 export default function Home() {
-  const { data: games = [] } = useGames()
+  const { data: games = [] } = useGames(null)
   const { data: stats = [] } = useLeaderboardStats()
   const gameCount = games.length
   const championCount = stats.filter(s => s.wins > 0).length

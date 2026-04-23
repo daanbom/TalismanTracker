@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
+import { useActiveGroup } from './useActiveGroup'
 
 export function useGame(id) {
+  const { activeGroupId, isLoading: groupsLoading } = useActiveGroup()
+
   return useQuery({
-    queryKey: ['game', id],
-    enabled: !!id,
+    queryKey: ['game', id, activeGroupId ?? 'none'],
+    enabled: !!id && !groupsLoading,
     queryFn: async () => {
+      if (!activeGroupId) return null
+
       const { data, error } = await supabase
         .from('games')
         .select(`
@@ -49,8 +54,10 @@ export function useGame(id) {
           )
         `)
         .eq('id', id)
-        .single()
+        .eq('group_id', activeGroupId)
+        .maybeSingle()
       if (error) throw error
+      if (!data) return null
       const allDeaths = data.deaths ?? []
       return {
         id: data.id,

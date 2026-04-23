@@ -8,8 +8,10 @@ import { useLogGame } from '../hooks/useLogGame'
 import { useUpdateGame } from '../hooks/useUpdateGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 import { useDeathTypes } from '../hooks/useDeathTypes'
+import { useActiveGroup } from '../hooks/useActiveGroup'
 import { AVAILABLE_ICONS } from '../data/availableIcons'
 import { WOODLAND_PATHS } from '../data/woodlandPaths'
+import GroupRequiredState from '../components/GroupRequiredState'
 import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
 
 const charIconUrl = (name) => {
@@ -93,13 +95,14 @@ function StepIndicator({ step }) {
   )
 }
 
-export default function LogGame({ initialData, isEditing, gameId }) {
+export default function LogGame({ initialData, isEditing, gameId, canDelete = true }) {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [step1Attempted, setStep1Attempted] = useState(false)
   const [form, setForm] = useState(initialData || INITIAL_STATE)
   const [showAddPlayer, setShowAddPlayer] = useState(false)
   const [newPlayerName, setNewPlayerName] = useState('')
+  const { activeGroupId, activeGroup, isLoading: groupsLoading } = useActiveGroup()
 
   const { data: allPlayers = [] } = usePlayers()
   const { data: allCharacters = [] } = useCharacters()
@@ -109,6 +112,21 @@ export default function LogGame({ initialData, isEditing, gameId }) {
   const logGame = useLogGame()
   const updateGame = useUpdateGame()
   const deleteGame = useDeleteGame()
+
+  if (groupsLoading) return null
+
+  if (!activeGroupId) {
+    return (
+      <GroupRequiredState
+        title={isEditing ? 'Select a group to edit games' : 'Select a group to log games'}
+        body={
+          isEditing
+            ? 'Games belong to a specific group. Pick the active group that owns this game before editing it.'
+            : 'Every game now belongs to a specific group. Choose an active group before logging a new game.'
+        }
+      />
+    )
+  }
 
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
 
@@ -479,6 +497,11 @@ export default function LogGame({ initialData, isEditing, gameId }) {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
+        {activeGroup && (
+          <p className="text-muted text-sm font-body mt-3">
+            Group: {activeGroup.name}
+          </p>
+        )}
       </div>
 
       <StepIndicator step={step} />
@@ -1160,7 +1183,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
             >
               {submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Submit Game'}
             </button>
-            {isEditing && (
+            {isEditing && canDelete && (
               <button
                 type="button"
                 className="btn-danger"
