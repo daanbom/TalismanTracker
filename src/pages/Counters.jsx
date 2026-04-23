@@ -145,6 +145,9 @@ export default function Counters() {
       {error && (
         <p className="text-danger text-sm font-body mb-4">{error.message}</p>
       )}
+      {mutation.error && (
+        <p className="text-danger text-sm font-body mb-4">{mutation.error.message}</p>
+      )}
       {isLoading && (
         <p className="text-muted text-sm font-body italic">Loading...</p>
       )}
@@ -162,6 +165,11 @@ export default function Counters() {
             />
           ))}
         </div>
+      )}
+      {!groupId && !isLoading && (
+        <p className="text-muted text-xs font-body mt-4 text-center">
+          Global view is read-only. Switch to a group to update counters.
+        </p>
       )}
     </div>
   )
