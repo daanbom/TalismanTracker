@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom'
 import { usePlayers } from '../hooks/usePlayers'
 import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
 import { useAddPlayer } from '../hooks/useAddPlayer'
+import { useClaimGuestPlayer } from '../hooks/useClaimGuestPlayer'
 import { useUpdatePlayer } from '../hooks/useUpdatePlayer'
 import { useCharacters } from '../hooks/useCharacters'
 import { useCurrentPlayer } from '../hooks/useCurrentPlayer'
+import { useActiveGroup } from '../hooks/useActiveGroup'
 import { IconPicker } from '../components/IconPicker'
 import { AVAILABLE_ICONS } from '../data/availableIcons'
 
@@ -56,6 +58,7 @@ function PlayerAvatar({ iconKey, name, onClick, size = 'lg' }) {
 }
 
 export default function Players() {
+  const [uiError, setUiError] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [newName, setNewName] = useState('')
   const [newIconKey, setNewIconKey] = useState(null)
@@ -72,9 +75,11 @@ export default function Players() {
 
   const playersQuery = usePlayers()
   const statsQuery = useLeaderboardStats()
+  const { activeGroupId, activeGroup } = useActiveGroup()
   const { data: allCharacters = [] } = useCharacters()
   const { data: currentPlayer } = useCurrentPlayer()
   const addPlayer = useAddPlayer()
+  const claimGuestPlayer = useClaimGuestPlayer()
   const updatePlayer = useUpdatePlayer()
 
   const canEdit = (player) => !!currentPlayer && player.id === currentPlayer.id
@@ -99,7 +104,16 @@ export default function Players() {
     return { ...p, ...s }
   })
 
-  const error = playersQuery.error || statsQuery.error || addPlayer.error || updatePlayer.error
+  const error = playersQuery.error || statsQuery.error || addPlayer.error || claimGuestPlayer.error || updatePlayer.error
+
+  const openAddModal = () => {
+    if (!activeGroupId) {
+      setUiError('Select an active group from the top-left switcher before adding a guest player.')
+      return
+    }
+    setUiError(null)
+    setShowAddModal(true)
+  }
 
   const handleAdd = () => {
     addPlayer.mutate({ name: newName, iconKey: newIconKey, iconCharacterId: newIconCharacterId, favoriteCharacterId: newFavoriteCharacterId }, {
@@ -146,12 +160,23 @@ export default function Players() {
     updatePlayer.reset()
   }
 
+  const handleClaimGuest = (player) => {
+    if (!activeGroupId || player.userId) return
+    const ok = window.confirm(`Claim "${player.name}" for your account in ${activeGroup?.name ?? 'this group'}?`)
+    if (!ok) return
+    claimGuestPlayer.mutate({ guestPlayerId: player.id })
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 animate-fade-up">
         <div className="flex items-center justify-between">
           <h1 className="font-heading text-3xl text-parchment tracking-wide">Players</h1>
-          <button onClick={() => setShowAddModal(true)} className="btn-gold text-sm">
+          <button
+            onClick={openAddModal}
+            className="btn-gold text-sm"
+            title={!activeGroupId ? 'Select an active group to add guest players' : undefined}
+          >
             Add Player
           </button>
         </div>
@@ -159,10 +184,18 @@ export default function Players() {
           <span className="text-gold-dim">&#9670;</span>
         </div>
         <p className="text-muted text-sm font-body mt-3">{players.length} adventurers registered</p>
+        {!activeGroupId && (
+          <p className="text-muted text-xs font-body mt-1">
+            Select an active group to add or claim guest players.
+          </p>
+        )}
       </div>
 
       {error && (
         <p className="text-danger text-sm font-body mb-4">{error.message}</p>
+      )}
+      {uiError && (
+        <p className="text-danger text-sm font-body mb-4">{uiError}</p>
       )}
 
       {players.length === 0 && !playersQuery.isLoading ? (
@@ -187,6 +220,13 @@ export default function Players() {
                     <span className="font-heading text-lg text-parchment tracking-wide">
                       {player.name}
                     </span>
+                  )}
+                  {!player.userId && (
+                    <div className="mt-0.5">
+                      <span className="text-[10px] font-body uppercase tracking-wider text-teal-light/80">
+                        Guest
+                      </span>
+                    </div>
                   )}
                   <div className="mt-0.5">
                     <span className="text-muted text-xs font-body">Favourite Character</span>
@@ -223,12 +263,24 @@ export default function Players() {
                 <span className="text-muted">
                   Joined {new Date(player.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
                 </span>
-                <Link
-                  to={`/players/${player.id}/tierlist`}
-                  className="text-gold-dim hover:text-gold transition-colors tracking-wide"
-                >
-                  Tierlist &rarr;
-                </Link>
+                <div className="flex items-center gap-3">
+                  {!player.userId && activeGroupId && (
+                    <button
+                      type="button"
+                      onClick={() => handleClaimGuest(player)}
+                      disabled={claimGuestPlayer.isPending}
+                      className="text-teal-light hover:text-teal transition-colors tracking-wide disabled:opacity-50"
+                    >
+                      {claimGuestPlayer.isPending ? 'Claiming...' : 'Claim'}
+                    </button>
+                  )}
+                  <Link
+                    to={`/players/${player.id}/tierlist`}
+                    className="text-gold-dim hover:text-gold transition-colors tracking-wide"
+                  >
+                    Tierlist &rarr;
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

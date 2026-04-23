@@ -303,7 +303,7 @@ export default function Tierlist() {
     () => (playersQuery.data ?? []).find(p => p.id === playerId),
     [playersQuery.data, playerId],
   )
-  const canEdit = canEditTierlist({ currentPlayer, playerId })
+  const canEdit = canEditTierlist({ currentPlayer, player })
 
   const iconsByKey = useMemo(() => {
     const map = new Map()
