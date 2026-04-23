@@ -2,8 +2,10 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useGame } from '../hooks/useGame'
 import { useDeleteGame } from '../hooks/useDeleteGame'
 import { useActiveGroup } from '../hooks/useActiveGroup'
+import { useCurrentPlayer } from '../hooks/useCurrentPlayer'
 import GroupRequiredState from '../components/GroupRequiredState'
 import { WoodlandPathTooltip } from '../components/WoodlandPathTooltip'
+import { canDeleteGame, canEditGame } from '../lib/accessControl'
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -47,7 +49,8 @@ function groupEventsByPlayer(events) {
 export default function GameDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { activeGroupId, isLoading: groupsLoading } = useActiveGroup()
+  const { activeGroupId, activeGroup, isLoading: groupsLoading } = useActiveGroup()
+  const { data: currentPlayer, isLoading: currentPlayerLoading } = useCurrentPlayer()
   const { data: game, error, isLoading } = useGame(id)
   const deleteGame = useDeleteGame()
 
@@ -65,7 +68,7 @@ export default function GameDetail() {
       </div>
     )
   }
-  if (groupsLoading || isLoading) return null
+  if (groupsLoading || isLoading || currentPlayerLoading) return null
 
   if (!activeGroupId) {
     return (
@@ -97,6 +100,8 @@ export default function GameDetail() {
   }
 
   const winners = game.players.filter(p => p.is_winner)
+  const canEdit = canEditGame({ activeGroup, currentPlayer, game })
+  const canDelete = canDeleteGame({ activeGroup, currentPlayer })
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -110,12 +115,18 @@ export default function GameDetail() {
             <h1 className="font-heading text-3xl text-parchment tracking-wide">{game.title}</h1>
           </div>
           <div className="flex gap-2 mt-6">
-            <Link to={`/games/${game.id}/edit`} className="btn-outline text-sm">
-              Edit Game
-            </Link>
-            <button onClick={handleDelete} disabled={deleteGame.isPending} className="btn-danger text-sm">
-              {deleteGame.isPending ? 'Deleting...' : 'Delete'}
-            </button>
+            {canEdit ? (
+              <Link to={`/games/${game.id}/edit`} className="btn-outline text-sm">
+                Edit Game
+              </Link>
+            ) : (
+              <span className="text-xs font-body text-muted self-center">No permission to edit this game</span>
+            )}
+            {canDelete && (
+              <button onClick={handleDelete} disabled={deleteGame.isPending} className="btn-danger text-sm">
+                {deleteGame.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            )}
           </div>
         </div>
         <div className="ornament-divider mt-3">
