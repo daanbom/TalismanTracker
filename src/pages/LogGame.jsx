@@ -95,7 +95,7 @@ function StepIndicator({ step }) {
   )
 }
 
-export default function LogGame({ initialData, isEditing, gameId }) {
+export default function LogGame({ initialData, isEditing, gameId, canDelete = true }) {
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [step1Attempted, setStep1Attempted] = useState(false)
@@ -1183,7 +1183,7 @@ export default function LogGame({ initialData, isEditing, gameId }) {
             >
               {submitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Submit Game'}
             </button>
-            {isEditing && (
+            {isEditing && canDelete && (
               <button
                 type="button"
                 className="btn-danger"
