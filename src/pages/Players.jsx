@@ -12,7 +12,27 @@ import { IconPicker } from '../components/IconPicker'
 import { AVAILABLE_ICONS } from '../data/availableIcons'
 
 const iconExtMap = new Map(AVAILABLE_ICONS.map(i => [i.key, i.ext]))
-function iconSrc(key) { return key ? `/icons/${key}${iconExtMap.get(key) ?? '.png'}` : null }
+function normalizeIconKey(rawKey) {
+  if (typeof rawKey !== 'string') return null
+  const trimmed = rawKey.trim()
+  if (!trimmed) return null
+
+  // Accept legacy values like "/icons/minstrel.jpg" or "minstrel.jpg".
+  const basename = trimmed.split('/').pop()?.split('\\').pop() ?? trimmed
+  const match = basename.match(/^(.*?)(\.(png|jpg|jpeg|webp))?$/i)
+  const key = (match?.[1] ?? basename).trim().toLowerCase()
+  const extFromValue = match?.[2]?.toLowerCase() ?? null
+  if (!key) return null
+
+  const ext = iconExtMap.get(key) ?? extFromValue ?? '.png'
+  return { key, ext }
+}
+
+function iconSrc(rawKey) {
+  const normalized = normalizeIconKey(rawKey)
+  if (!normalized) return null
+  return `/icons/${encodeURIComponent(normalized.key)}${normalized.ext}`
+}
 
 function PlayerAvatar({ iconKey, name, onClick, size = 'lg' }) {
   const dim = size === 'lg' ? 'w-20 h-20' : 'w-10 h-10'

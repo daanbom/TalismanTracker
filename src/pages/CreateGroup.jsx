@@ -44,7 +44,7 @@ export default function CreateGroup() {
 
     const { error: memberErr } = await supabase
       .from('group_members')
-      .insert({ group_id: group.id, user_id: user.id, player_id: player.id })
+      .insert({ group_id: group.id, user_id: user.id, player_id: player.id, is_admin: true })
     if (memberErr) {
       setError(memberErr.message)
       setSubmitting(false)
