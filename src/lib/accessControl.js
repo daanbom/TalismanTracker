@@ -1,8 +1,11 @@
 function isGroupAdmin(activeGroup, currentPlayer) {
   return Boolean(
-    activeGroup?.admin_user_id &&
-      currentPlayer?.user_id &&
-      activeGroup.admin_user_id === currentPlayer.user_id,
+    activeGroup?.isAdmin ||
+      (
+        activeGroup?.admin_user_id &&
+        currentPlayer?.user_id &&
+        activeGroup.admin_user_id === currentPlayer.user_id
+      ),
   )
 }
 

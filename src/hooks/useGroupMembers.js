@@ -8,10 +8,12 @@ export function useGroupMembers(groupId) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('group_members')
-        .select('user_id, players(id, name)')
+        .select('user_id, is_admin, players(id, name)')
         .eq('group_id', groupId)
       if (error) throw error
-      return data.map((row) => ({ userId: row.user_id, ...row.players })).filter((m) => m.id)
+      return data
+        .map((row) => ({ userId: row.user_id, isAdmin: Boolean(row.is_admin), ...row.players }))
+        .filter((m) => m.id)
     },
   })
 }
@@ -34,18 +36,20 @@ export function useRemoveMember(groupId) {
   })
 }
 
-export function useTransferAdmin(groupId) {
+export function useSetMemberAdmin(groupId) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (newAdminUserId) => {
-      const { error } = await supabase
-        .from('groups')
-        .update({ admin_user_id: newAdminUserId })
-        .eq('id', groupId)
+    mutationFn: async ({ userId, isAdmin }) => {
+      const { error } = await supabase.rpc('set_group_member_admin', {
+        p_group_id: groupId,
+        p_user_id: userId,
+        p_is_admin: isAdmin,
+      })
       if (error) throw error
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['groups'] })
+      qc.invalidateQueries({ queryKey: ['groupMembers', groupId] })
     },
   })
 }

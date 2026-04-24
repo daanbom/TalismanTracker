@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useActiveGroup } from '../hooks/useActiveGroup'
-import { useAuth } from '../hooks/useAuth'
 import { useGroupJoinRequests } from '../hooks/useJoinRequests'
 import { getGroupSwitchDestination } from '../lib/groupNavigation'
 
 export default function GroupSwitcher({ onNavigate }) {
   const { activeGroup, groups, setActiveGroup } = useActiveGroup()
-  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
@@ -26,7 +24,7 @@ export default function GroupSwitcher({ onNavigate }) {
 
   const label = activeGroup?.name ?? 'No group'
 
-  const isAdmin = activeGroup?.admin_user_id === user?.id
+  const isAdmin = Boolean(activeGroup?.isAdmin)
   const pendingGroupId = isAdmin ? activeGroup?.id : null
   const { data: pendingRequests = [] } = useGroupJoinRequests(pendingGroupId)
   const pendingCount = pendingRequests.length
@@ -36,8 +34,7 @@ export default function GroupSwitcher({ onNavigate }) {
     const destination = getGroupSwitchDestination({
       currentPathname: location.pathname,
       nextGroupId: nextGroup?.id ?? null,
-      nextGroupAdminUserId: nextGroup?.admin_user_id ?? null,
-      userId: user?.id ?? null,
+      nextGroupIsAdmin: Boolean(nextGroup?.isAdmin),
     })
 
     setActiveGroup(id)

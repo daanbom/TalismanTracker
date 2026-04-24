@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Navigate, useNavigate } from 'react-router-dom'
+import { useParams, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '../hooks/useAuth'
 import { useGroups } from '../hooks/useGroups'
@@ -17,7 +17,7 @@ import {
 import {
   useGroupMembers,
   useRemoveMember,
-  useTransferAdmin,
+  useSetMemberAdmin,
   useRenameGroup,
 } from '../hooks/useGroupMembers'
 
@@ -33,7 +33,6 @@ function relativeExpiry(iso) {
 export default function GroupSettings() {
   const { id: groupId } = useParams()
   const { user } = useAuth()
-  const navigate = useNavigate()
   const { data: groups = [], isLoading: groupsLoading } = useGroups()
   const group = groups.find((g) => g.id === groupId)
 
@@ -49,7 +48,7 @@ export default function GroupSettings() {
 
   const { data: members = [], isLoading: membersLoading } = useGroupMembers(groupId)
   const removeMember = useRemoveMember(groupId)
-  const transferAdmin = useTransferAdmin(groupId)
+  const setMemberAdmin = useSetMemberAdmin(groupId)
   const renameGroup = useRenameGroup(groupId)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
@@ -70,7 +69,7 @@ export default function GroupSettings() {
 
   if (groupsLoading) return <div className="p-8 text-parchment/60">Loading…</div>
   if (!group) return <Navigate to="/" replace />
-  if (group.admin_user_id !== user?.id) return <Navigate to="/" replace />
+  if (!group.isAdmin) return <Navigate to="/" replace />
 
   const joinUrl = `${window.location.origin}/join/${group.invite_code}`
 
@@ -99,13 +98,14 @@ export default function GroupSettings() {
     }
   }
 
-  const onTransferAdmin = async (member) => {
-    if (!window.confirm(`Transfer admin to ${member.name}? You will lose admin access.`)) return
+  const onSetMemberAdmin = async (member, makeAdmin) => {
+    if (!window.confirm(`${makeAdmin ? 'Grant' : 'Remove'} admin access for ${member.name}?`)) return
     try {
-      await transferAdmin.mutateAsync(member.userId)
-      navigate('/')
+      await setMemberAdmin.mutateAsync({ userId: member.userId, isAdmin: makeAdmin })
+      setToast(`${member.name} ${makeAdmin ? 'is now an admin' : 'is no longer an admin'}.`)
+      setTimeout(() => setToast(null), 2000)
     } catch (e) {
-      setToast(`Failed to transfer admin: ${e.message}`)
+      setToast(`Failed to update admin access: ${e.message}`)
       setTimeout(() => setToast(null), 3000)
     }
   }
@@ -127,9 +127,9 @@ export default function GroupSettings() {
     setFormError(null)
     const normalized = email.trim().toLowerCase()
 
-    // Q8-c: block self-invite by admin.
+    // Block self-invite for any admin.
     if (user?.email?.toLowerCase() === normalized) {
-      setFormError("That's you — you're the admin.")
+      setFormError("That's you — you're already in this group.")
       return
     }
 
@@ -183,7 +183,8 @@ export default function GroupSettings() {
         ) : (
           <ul className="divide-y divide-gold-dim/20 border border-gold-dim/20 rounded">
             {members.map((member) => {
-              const isAdmin = member.userId === group.admin_user_id
+              const isOwner = member.userId === group.admin_user_id
+              const isAdmin = isOwner || member.isAdmin
               const isSelf = member.userId === user?.id
               return (
                 <li key={member.userId} className="flex items-center justify-between px-4 py-3">
@@ -195,22 +196,26 @@ export default function GroupSettings() {
                   </div>
                   {!isSelf && (
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onTransferAdmin(member)}
-                        disabled={transferAdmin.isPending}
-                        className="text-sm text-parchment/70 hover:text-gold underline disabled:opacity-50"
-                      >
-                        Make admin
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveMember(member)}
-                        disabled={removeMember.isPending}
-                        className="text-sm text-red-300 hover:text-red-200 underline disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
+                      {!isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => onSetMemberAdmin(member, !isAdmin)}
+                          disabled={setMemberAdmin.isPending}
+                          className="text-sm text-parchment/70 hover:text-gold underline disabled:opacity-50"
+                        >
+                          {isAdmin ? 'Remove admin' : 'Make admin'}
+                        </button>
+                      )}
+                      {!isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveMember(member)}
+                          disabled={removeMember.isPending}
+                          className="text-sm text-red-300 hover:text-red-200 underline disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   )}
                 </li>

@@ -11,10 +11,18 @@ export function useGroups() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('group_members')
-        .select('groups(id, name, admin_user_id, invite_code)')
+        .select('is_admin, groups(id, name, admin_user_id, invite_code)')
         .eq('user_id', user.id)
       if (error) throw error
-      return data.map((row) => row.groups).filter(Boolean)
+      return data
+        .map((row) => {
+          if (!row.groups) return null
+          return {
+            ...row.groups,
+            isAdmin: Boolean(row.is_admin || row.groups.admin_user_id === user.id),
+          }
+        })
+        .filter(Boolean)
     },
   })
 }
