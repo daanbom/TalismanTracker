@@ -27,16 +27,28 @@ export function usePlayers() {
     enabled: !groupsLoading && !currentLoading,
     queryFn: async () => {
       if (activeGroupId) {
-        const { data, error } = await supabase
-          .from('group_members')
-          .select(`players(${PLAYER_COLUMNS})`)
-          .eq('group_id', activeGroupId)
-        if (error) throw error
-        return data
+        const [membersRes, guestsRes] = await Promise.all([
+          supabase
+            .from('group_members')
+            .select(`players(${PLAYER_COLUMNS})`)
+            .eq('group_id', activeGroupId),
+          supabase
+            .from('group_guest_players')
+            .select(`players(${PLAYER_COLUMNS})`)
+            .eq('group_id', activeGroupId),
+        ])
+        if (membersRes.error) throw membersRes.error
+        if (guestsRes.error) throw guestsRes.error
+
+        const combined = [...(membersRes.data ?? []), ...(guestsRes.data ?? [])]
           .map((row) => row.players)
           .filter(Boolean)
           .map(normalize)
-          .sort((a, b) => a.name.localeCompare(b.name))
+
+        const byId = new Map()
+        for (const player of combined) byId.set(player.id, player)
+
+        return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name))
       }
       if (!currentPlayer) return []
       return [normalize(currentPlayer)]

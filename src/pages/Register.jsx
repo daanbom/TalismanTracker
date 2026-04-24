@@ -40,6 +40,7 @@ export default function Register() {
             <input
               type="email"
               required
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -51,9 +52,10 @@ export default function Register() {
             <input
               type="password"
               required
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="........"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
@@ -62,9 +64,10 @@ export default function Register() {
             <input
               type="password"
               required
+              autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              placeholder="••••••••"
+              placeholder="........"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
@@ -73,7 +76,7 @@ export default function Register() {
             disabled={status === 'loading'}
             className="w-full px-4 py-2 bg-gold text-deep font-heading tracking-wide rounded disabled:opacity-50 hover:bg-gold-light transition-colors"
           >
-            {status === 'loading' ? 'Creating account…' : 'Create account'}
+            {status === 'loading' ? 'Creating account...' : 'Create account'}
           </button>
           {error && <p className="text-red-400 text-sm">{error}</p>}
         </form>

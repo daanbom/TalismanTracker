@@ -19,7 +19,11 @@ export function canDeleteGame({ activeGroup, currentPlayer }) {
   return isGroupAdmin(activeGroup, currentPlayer)
 }
 
-export function canEditTierlist({ currentPlayer, playerId }) {
-  return Boolean(currentPlayer?.id && playerId && currentPlayer.id === playerId)
+export function canEditTierlist({ currentPlayer, player }) {
+  return Boolean(
+    currentPlayer?.user_id &&
+      player?.userId &&
+      currentPlayer.user_id === player.userId,
+  )
 }
 
