@@ -8,11 +8,16 @@ export default function GroupDirectory() {
   const { data: myMemberships = [] } = useGroups()
   const requestToJoin = useRequestToJoin()
   const [requestError, setRequestError] = useState(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const memberGroupIds = new Set(myMemberships.map((g) => g.id))
   const requestsByGroupId = Object.fromEntries(myRequests.map((r) => [r.group_id, r]))
+  const normalizedSearch = searchTerm.trim().toLowerCase()
+  const filteredGroups = normalizedSearch
+    ? allGroups.filter((group) => group.name.toLowerCase().includes(normalizedSearch))
+    : allGroups
 
-  if (isLoading) return <div className="p-8 text-parchment/60">Loading…</div>
+  if (isLoading) return <div className="p-8 text-parchment/60">Loading...</div>
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -22,12 +27,31 @@ export default function GroupDirectory() {
           Find a group and request to join.
         </p>
       </header>
+      {allGroups.length > 0 && (
+        <label className="block space-y-1">
+          <span className="text-xs uppercase tracking-wide text-parchment/60 font-heading">
+            Search groups
+          </span>
+          <input
+            type="search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by group name"
+            className="w-full rounded border border-gold-dim/30 bg-night/40 px-3 py-2 text-parchment placeholder:text-parchment/40 focus:outline-none focus:ring-2 focus:ring-gold/50"
+            aria-label="Search groups by name"
+          />
+        </label>
+      )}
 
       {allGroups.length === 0 ? (
         <p className="text-parchment/50 italic font-body">No groups yet.</p>
+      ) : filteredGroups.length === 0 ? (
+        <p className="text-parchment/50 italic font-body">
+          No groups match "{searchTerm.trim()}".
+        </p>
       ) : (
         <ul className="divide-y divide-gold-dim/20 border border-gold-dim/20 rounded">
-          {allGroups.map((group) => {
+          {filteredGroups.map((group) => {
             const isMember = memberGroupIds.has(group.id)
             const request = requestsByGroupId[group.id]
             const isPending = request?.status === 'pending'
