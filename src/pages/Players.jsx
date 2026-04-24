@@ -75,7 +75,7 @@ export default function Players() {
 
   const playersQuery = usePlayers()
   const statsQuery = useLeaderboardStats()
-  const { activeGroupId, activeGroup } = useActiveGroup()
+  const { activeGroupId, activeGroup, groups, setActiveGroup } = useActiveGroup()
   const { data: allCharacters = [] } = useCharacters()
   const { data: currentPlayer } = useCurrentPlayer()
   const addPlayer = useAddPlayer()
@@ -108,6 +108,12 @@ export default function Players() {
 
   const openAddModal = () => {
     if (!activeGroupId) {
+      if (groups.length === 1) {
+        setActiveGroup(groups[0].id)
+        setUiError(null)
+        setShowAddModal(true)
+        return
+      }
       setUiError('Select an active group from the top-left switcher before adding a guest player.')
       return
     }
@@ -116,6 +122,7 @@ export default function Players() {
   }
 
   const handleAdd = () => {
+    setUiError(null)
     addPlayer.mutate({ name: newName, iconKey: newIconKey, iconCharacterId: newIconCharacterId, favoriteCharacterId: newFavoriteCharacterId }, {
       onSuccess: () => {
         setShowAddModal(false)
@@ -123,6 +130,9 @@ export default function Players() {
         setNewIconKey(null)
         setNewIconCharacterId(null)
         setNewFavoriteCharacterId(null)
+      },
+      onError: (err) => {
+        setUiError(err?.message ?? 'Failed to add guest player.')
       },
     })
   }
@@ -183,6 +193,11 @@ export default function Players() {
         <div className="ornament-divider mt-3">
           <span className="text-gold-dim">&#9670;</span>
         </div>
+        {activeGroup && (
+          <p className="text-muted text-xs font-body mt-2">
+            Active group: {activeGroup.name}
+          </p>
+        )}
         <p className="text-muted text-sm font-body mt-3">{players.length} adventurers registered</p>
         {!activeGroupId && (
           <p className="text-muted text-xs font-body mt-1">

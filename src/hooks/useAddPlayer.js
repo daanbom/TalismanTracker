@@ -19,12 +19,16 @@ export function useAddPlayer() {
         p_favorite_character_id: favoriteCharacterId,
       })
       if (error) throw error
+
+      const created = Array.isArray(data) ? data[0] : data
+      if (!created?.id) throw new Error('Guest player was created but no id was returned.')
+
       return {
-        id: data.id,
-        name: data.name,
-        created_at: data.created_at,
-        icon_key: data.icon_key,
-        icon_character_id: data.icon_character_id,
+        id: created.id,
+        name: created.name,
+        created_at: created.created_at,
+        icon_key: created.icon_key,
+        icon_character_id: created.icon_character_id,
       }
     },
     onSuccess: () => {

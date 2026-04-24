@@ -38,6 +38,7 @@ export default function Login() {
             <input
               type="email"
               required
+              autoComplete="username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -49,9 +50,10 @@ export default function Login() {
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="........"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
@@ -60,7 +62,7 @@ export default function Login() {
             disabled={status === 'loading'}
             className="w-full px-4 py-2 bg-gold text-deep font-heading tracking-wide rounded disabled:opacity-50 hover:bg-gold-light transition-colors"
           >
-            {status === 'loading' ? 'Signing in…' : 'Sign in'}
+            {status === 'loading' ? 'Signing in...' : 'Sign in'}
           </button>
           {error && <p className="text-red-400 text-sm">{error}</p>}
         </form>
