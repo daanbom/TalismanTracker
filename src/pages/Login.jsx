@@ -3,8 +3,12 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { sanitizeNext } from '../utils/redirect'
 
+function normalizeUsername(value) {
+  return value.trim().toLowerCase()
+}
+
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
@@ -16,13 +20,26 @@ export default function Login() {
     e.preventDefault()
     setStatus('loading')
     setError(null)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message)
+
+    const normalizedUsername = normalizeUsername(username)
+
+    const { data: email, error: resolveError } = await supabase
+      .rpc('get_email_for_username', { p_username: normalizedUsername })
+
+    if (resolveError || !email) {
+      setError('Invalid username or password.')
       setStatus('idle')
-    } else {
-      navigate(next, { replace: true })
+      return
     }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+    if (signInError) {
+      setError('Invalid username or password.')
+      setStatus('idle')
+      return
+    }
+
+    navigate(next, { replace: true })
   }
 
   return (
@@ -34,13 +51,13 @@ export default function Login() {
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block">
-            <span className="block text-sm text-parchment/80 mb-1 font-heading">Email</span>
+            <span className="block text-sm text-parchment/80 mb-1 font-heading">Username</span>
             <input
-              type="email"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="your_name"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
@@ -49,9 +66,10 @@ export default function Login() {
             <input
               type="password"
               required
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="........"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
@@ -60,7 +78,7 @@ export default function Login() {
             disabled={status === 'loading'}
             className="w-full px-4 py-2 bg-gold text-deep font-heading tracking-wide rounded disabled:opacity-50 hover:bg-gold-light transition-colors"
           >
-            {status === 'loading' ? 'Signing in…' : 'Sign in'}
+            {status === 'loading' ? 'Signing in...' : 'Sign in'}
           </button>
           {error && <p className="text-red-400 text-sm">{error}</p>}
         </form>

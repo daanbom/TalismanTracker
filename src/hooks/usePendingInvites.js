@@ -3,7 +3,7 @@ import { supabase } from '../supabaseClient'
 import { useAuth } from './useAuth'
 import { useCurrentPlayer } from './useCurrentPlayer'
 
-// Invites addressed to the current user's email, pending, not expired.
+// Invites addressed to the current user, pending, not expired.
 // Uses a SECURITY DEFINER RPC so the group name comes back even though the
 // invitee isn't a group member yet (the groups select policy is members-only).
 export function usePendingInvites() {

@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Setup from './pages/Setup'
+import SetupUsername from './pages/SetupUsername'
 import CreateGroup from './pages/CreateGroup'
 import GroupSettings from './pages/GroupSettings'
 import JoinGroup from './pages/JoinGroup'
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="/register" element={<Register />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/setup" element={<Setup />} />
+              <Route path="/setup-username" element={<SetupUsername />} />
               <Route path="/groups/new" element={<CreateGroup />} />
               <Route path="/groups/:id/settings" element={<GroupSettings />} />
               <Route path="/join/:code" element={<JoinGroup />} />

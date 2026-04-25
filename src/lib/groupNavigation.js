@@ -3,10 +3,9 @@ const GROUP_SETTINGS_PATH_RE = /^\/groups\/[^/]+\/settings\/?$/
 export function getGroupSwitchDestination({
   currentPathname,
   nextGroupId,
-  nextGroupAdminUserId,
-  userId,
+  nextGroupIsAdmin,
 }) {
   if (!GROUP_SETTINGS_PATH_RE.test(currentPathname)) return null
   if (!nextGroupId) return '/'
-  return nextGroupAdminUserId === userId ? `/groups/${nextGroupId}/settings` : '/'
+  return nextGroupIsAdmin ? `/groups/${nextGroupId}/settings` : '/'
 }

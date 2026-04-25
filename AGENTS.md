@@ -79,4 +79,5 @@ Migrations live in `supabase/migrations/` and are applied via Supabase CLI. Seed
 - No Empty Criticism: If you spot a flaw, you must offer a mitigation.
 - Add Vector and Velocity: If you agree, expand. If you disagree, counter. Never just nod.
 - Be Thorough: Ask question when planning
+- Do not create or use git worktrees unless the user explicitly asks for a worktree.
 - Do not add or update tests unless the user explicitly asks for tests.

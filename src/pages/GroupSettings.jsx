@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { useParams, Navigate, useNavigate } from 'react-router-dom'
+import { useParams, Navigate } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '../hooks/useAuth'
 import { useGroups } from '../hooks/useGroups'
+import { useCurrentUserProfile } from '../hooks/useCurrentUserProfile'
 import {
   useGroupInvites,
-  useCreateEmailInvite,
+  useCreateUsernameInvite,
   useRevokeInvite,
   useRegenerateInviteCode,
 } from '../hooks/useGroupInvites'
@@ -17,7 +18,7 @@ import {
 import {
   useGroupMembers,
   useRemoveMember,
-  useTransferAdmin,
+  useSetMemberAdmin,
   useRenameGroup,
 } from '../hooks/useGroupMembers'
 
@@ -30,16 +31,30 @@ function relativeExpiry(iso) {
   return `${hours}h left`
 }
 
+function isDuplicateGroupNameError(error) {
+  if (!error || error.code !== '23505') return false
+  const details = `${error.message ?? ''} ${error.details ?? ''} ${error.hint ?? ''}`.toLowerCase()
+  return details.includes('groups_name_unique_ci') || details.includes('lower(btrim(name))')
+}
+
+function mapInviteError(error) {
+  const code = `${error?.message ?? ''}`.toLowerCase()
+  if (code.includes('username_not_found')) return 'Username does not exist.'
+  if (code.includes('cannot_invite_self')) return "That's you - you're already in this group."
+  if (code.includes('not_admin')) return 'Only group admins can send invites.'
+  return error?.message ?? 'Failed to create invite.'
+}
+
 export default function GroupSettings() {
   const { id: groupId } = useParams()
   const { user } = useAuth()
-  const navigate = useNavigate()
+  const { data: profile } = useCurrentUserProfile()
   const { data: groups = [], isLoading: groupsLoading } = useGroups()
   const group = groups.find((g) => g.id === groupId)
 
   const [showHistory, setShowHistory] = useState(false)
   const { data: invites = [], isLoading: invitesLoading } = useGroupInvites(groupId, { includeHistory: showHistory })
-  const createInvite = useCreateEmailInvite(groupId)
+  const createInvite = useCreateUsernameInvite(groupId)
   const revokeInvite = useRevokeInvite(groupId)
   const regenerate = useRegenerateInviteCode(groupId)
 
@@ -49,7 +64,7 @@ export default function GroupSettings() {
 
   const { data: members = [], isLoading: membersLoading } = useGroupMembers(groupId)
   const removeMember = useRemoveMember(groupId)
-  const transferAdmin = useTransferAdmin(groupId)
+  const setMemberAdmin = useSetMemberAdmin(groupId)
   const renameGroup = useRenameGroup(groupId)
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm()
@@ -68,9 +83,9 @@ export default function GroupSettings() {
     if (group?.name) resetRename({ name: group.name })
   }, [group?.name]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (groupsLoading) return <div className="p-8 text-parchment/60">Loading…</div>
+  if (groupsLoading) return <div className="p-8 text-parchment/60">Loading...</div>
   if (!group) return <Navigate to="/" replace />
-  if (group.admin_user_id !== user?.id) return <Navigate to="/" replace />
+  if (!group.isAdmin) return <Navigate to="/" replace />
 
   const joinUrl = `${window.location.origin}/join/${group.invite_code}`
 
@@ -83,7 +98,11 @@ export default function GroupSettings() {
       setToast('Group renamed.')
       setTimeout(() => setToast(null), 2000)
     } catch (e) {
-      setRenameError(e.message ?? 'Failed to rename group.')
+      setRenameError(
+        isDuplicateGroupNameError(e)
+          ? 'A group with that name already exists.'
+          : (e.message ?? 'Failed to rename group.')
+      )
     }
   })
 
@@ -99,13 +118,14 @@ export default function GroupSettings() {
     }
   }
 
-  const onTransferAdmin = async (member) => {
-    if (!window.confirm(`Transfer admin to ${member.name}? You will lose admin access.`)) return
+  const onSetMemberAdmin = async (member, makeAdmin) => {
+    if (!window.confirm(`${makeAdmin ? 'Grant' : 'Remove'} admin access for ${member.name}?`)) return
     try {
-      await transferAdmin.mutateAsync(member.userId)
-      navigate('/')
+      await setMemberAdmin.mutateAsync({ userId: member.userId, isAdmin: makeAdmin })
+      setToast(`${member.name} ${makeAdmin ? 'is now an admin' : 'is no longer an admin'}.`)
+      setTimeout(() => setToast(null), 2000)
     } catch (e) {
-      setToast(`Failed to transfer admin: ${e.message}`)
+      setToast(`Failed to update admin access: ${e.message}`)
       setTimeout(() => setToast(null), 3000)
     }
   }
@@ -123,23 +143,22 @@ export default function GroupSettings() {
     setTimeout(() => setToast(null), 2000)
   }
 
-  const onInvite = handleSubmit(async ({ email }) => {
+  const onInvite = handleSubmit(async ({ username }) => {
     setFormError(null)
-    const normalized = email.trim().toLowerCase()
+    const normalized = username.trim().toLowerCase()
 
-    // Q8-c: block self-invite by admin.
-    if (user?.email?.toLowerCase() === normalized) {
-      setFormError("That's you — you're the admin.")
+    if (profile?.username === normalized) {
+      setFormError("That's you - you're already in this group.")
       return
     }
 
     try {
-      await createInvite.mutateAsync(normalized)
-      reset({ email: '' })
-      setToast('Invite created — user will see it next time they log in.')
+      const invitedUsername = await createInvite.mutateAsync(normalized)
+      reset({ username: '' })
+      setToast(`Invite created for @${invitedUsername}.`)
       setTimeout(() => setToast(null), 3000)
     } catch (e) {
-      setFormError(e.message ?? 'Failed to create invite.')
+      setFormError(mapInviteError(e))
     }
   })
 
@@ -165,7 +184,7 @@ export default function GroupSettings() {
             disabled={renameGroup.isPending}
             className="px-4 py-2 bg-gold text-deep font-heading rounded hover:bg-gold-light transition-colors"
           >
-            {renameGroup.isPending ? 'Saving…' : 'Save'}
+            {renameGroup.isPending ? 'Saving...' : 'Save'}
           </button>
         </form>
         {renameErrors.name && <p className="text-red-400 text-sm">{renameErrors.name.message}</p>}
@@ -177,13 +196,14 @@ export default function GroupSettings() {
           Members{members.length > 0 ? ` (${members.length})` : ''}
         </h2>
         {membersLoading ? (
-          <p className="text-parchment/50 text-sm">Loading…</p>
+          <p className="text-parchment/50 text-sm">Loading...</p>
         ) : members.length === 0 ? (
           <p className="text-parchment/50 text-sm italic">No members.</p>
         ) : (
           <ul className="divide-y divide-gold-dim/20 border border-gold-dim/20 rounded">
             {members.map((member) => {
-              const isAdmin = member.userId === group.admin_user_id
+              const isOwner = member.userId === group.admin_user_id
+              const isAdmin = isOwner || member.isAdmin
               const isSelf = member.userId === user?.id
               return (
                 <li key={member.userId} className="flex items-center justify-between px-4 py-3">
@@ -195,22 +215,26 @@ export default function GroupSettings() {
                   </div>
                   {!isSelf && (
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onTransferAdmin(member)}
-                        disabled={transferAdmin.isPending}
-                        className="text-sm text-parchment/70 hover:text-gold underline disabled:opacity-50"
-                      >
-                        Make admin
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onRemoveMember(member)}
-                        disabled={removeMember.isPending}
-                        className="text-sm text-red-300 hover:text-red-200 underline disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
+                      {!isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => onSetMemberAdmin(member, !isAdmin)}
+                          disabled={setMemberAdmin.isPending}
+                          className="text-sm text-parchment/70 hover:text-gold underline disabled:opacity-50"
+                        >
+                          {isAdmin ? 'Remove admin' : 'Make admin'}
+                        </button>
+                      )}
+                      {!isOwner && (
+                        <button
+                          type="button"
+                          onClick={() => onRemoveMember(member)}
+                          disabled={removeMember.isPending}
+                          className="text-sm text-red-300 hover:text-red-200 underline disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   )}
                 </li>
@@ -243,17 +267,17 @@ export default function GroupSettings() {
           disabled={regenerate.isPending}
           className="text-sm text-parchment/70 hover:text-gold underline"
         >
-          {regenerate.isPending ? 'Regenerating…' : 'Regenerate link'}
+          {regenerate.isPending ? 'Regenerating...' : 'Regenerate link'}
         </button>
       </section>
 
       <section className="space-y-3">
-        <h2 className="font-heading text-xl text-parchment">Invite by email</h2>
+        <h2 className="font-heading text-xl text-parchment">Invite by username</h2>
         <form onSubmit={onInvite} className="flex gap-2">
           <input
-            type="email"
-            placeholder="friend@example.com"
-            {...register('email', { required: 'Email required' })}
+            type="text"
+            placeholder="friend_username"
+            {...register('username', { required: 'Username required' })}
             className="flex-1 px-3 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded"
           />
           <button
@@ -261,10 +285,10 @@ export default function GroupSettings() {
             disabled={createInvite.isPending}
             className="px-4 py-2 bg-gold text-deep font-heading rounded hover:bg-gold-light transition-colors"
           >
-            {createInvite.isPending ? 'Sending…' : 'Send invite'}
+            {createInvite.isPending ? 'Sending...' : 'Send invite'}
           </button>
         </form>
-        {errors.email && <p className="text-red-400 text-sm">{errors.email.message}</p>}
+        {errors.username && <p className="text-red-400 text-sm">{errors.username.message}</p>}
         {formError && <p className="text-red-400 text-sm">{formError}</p>}
       </section>
 
@@ -280,7 +304,7 @@ export default function GroupSettings() {
           </button>
         </div>
         {invitesLoading ? (
-          <p className="text-parchment/50 text-sm">Loading…</p>
+          <p className="text-parchment/50 text-sm">Loading...</p>
         ) : invites.length === 0 ? (
           <p className="text-parchment/50 text-sm italic">No {showHistory ? 'invites' : 'pending invites'}.</p>
         ) : (
@@ -288,7 +312,7 @@ export default function GroupSettings() {
             {invites.map((inv) => (
               <li key={inv.id} className="flex items-center justify-between px-4 py-3">
                 <div>
-                  <div className="text-parchment">{inv.invited_email}</div>
+                  <div className="text-parchment">{inv.invited_username ? `@${inv.invited_username}` : 'Unknown user'}</div>
                   <div className="text-xs text-parchment/50 font-body">
                     {inv.status === 'pending' ? relativeExpiry(inv.expires_at) : inv.status}
                   </div>
@@ -313,7 +337,7 @@ export default function GroupSettings() {
           Join requests{joinRequests.length > 0 ? ` (${joinRequests.length})` : ''}
         </h2>
         {joinRequestsLoading ? (
-          <p className="text-parchment/50 text-sm">Loading…</p>
+          <p className="text-parchment/50 text-sm">Loading...</p>
         ) : joinRequests.length === 0 ? (
           <p className="text-parchment/50 text-sm italic">No pending requests.</p>
         ) : (
