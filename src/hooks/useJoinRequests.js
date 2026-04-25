@@ -10,7 +10,11 @@ export function useAllGroups() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('list_all_groups')
       if (error) throw error
-      return data ?? []
+      return (data ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        memberCount: Number(row.member_count ?? 0),
+      }))
     },
   })
 }

@@ -30,6 +30,12 @@ function relativeExpiry(iso) {
   return `${hours}h left`
 }
 
+function isDuplicateGroupNameError(error) {
+  if (!error || error.code !== '23505') return false
+  const details = `${error.message ?? ''} ${error.details ?? ''} ${error.hint ?? ''}`.toLowerCase()
+  return details.includes('groups_name_unique_ci') || details.includes('lower(btrim(name))')
+}
+
 export default function GroupSettings() {
   const { id: groupId } = useParams()
   const { user } = useAuth()
@@ -82,7 +88,11 @@ export default function GroupSettings() {
       setToast('Group renamed.')
       setTimeout(() => setToast(null), 2000)
     } catch (e) {
-      setRenameError(e.message ?? 'Failed to rename group.')
+      setRenameError(
+        isDuplicateGroupNameError(e)
+          ? 'A group with that name already exists.'
+          : (e.message ?? 'Failed to rename group.')
+      )
     }
   })
 
