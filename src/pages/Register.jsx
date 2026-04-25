@@ -2,7 +2,16 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 
+function normalizeUsername(value) {
+  return value.trim().toLowerCase()
+}
+
+function isValidUsername(value) {
+  return /^[a-z0-9_]{3,20}$/.test(value)
+}
+
 export default function Register() {
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -16,15 +25,58 @@ export default function Register() {
       setError('Passwords do not match.')
       return
     }
+
+    const normalizedUsername = normalizeUsername(username)
+    if (!isValidUsername(normalizedUsername)) {
+      setError('Username must be 3-20 chars: lowercase letters, numbers, underscores.')
+      return
+    }
+
     setStatus('loading')
     setError(null)
-    const { error } = await supabase.auth.signUp({ email, password })
-    if (error) {
-      setError(error.message)
+
+    const { data: usernameOwner, error: usernameLookupError } = await supabase.rpc('get_email_for_username', {
+      p_username: normalizedUsername,
+    })
+    if (usernameLookupError) {
+      setError(usernameLookupError.message)
       setStatus('idle')
-    } else {
-      navigate('/', { replace: true })
+      return
     }
+    if (usernameOwner) {
+      setError('That username is already taken.')
+      setStatus('idle')
+      return
+    }
+
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+    if (signUpError) {
+      setError(signUpError.message)
+      setStatus('idle')
+      return
+    }
+
+    const newUserId = signUpData?.user?.id
+    if (!newUserId) {
+      navigate('/login', { replace: true })
+      return
+    }
+
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .insert({ user_id: newUserId, username: normalizedUsername })
+
+    if (profileError) {
+      if (profileError.code === '23505') {
+        setError('That username is already taken.')
+      } else {
+        setError(profileError.message)
+      }
+      setStatus('idle')
+      return
+    }
+
+    navigate('/', { replace: true })
   }
 
   return (
@@ -36,11 +88,24 @@ export default function Register() {
         </div>
         <form onSubmit={onSubmit} className="space-y-4">
           <label className="block">
+            <span className="block text-sm text-parchment/80 mb-1 font-heading">Username</span>
+            <input
+              required
+              minLength={3}
+              maxLength={20}
+              autoComplete="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="your_name"
+              className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
+            />
+          </label>
+          <label className="block">
             <span className="block text-sm text-parchment/80 mb-1 font-heading">Email</span>
             <input
               type="email"
               required
-              autoComplete="username"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
