@@ -24,7 +24,7 @@ export default function SetupUsername() {
     e.preventDefault()
     const normalized = normalizeUsername(username)
     if (!isValidUsername(normalized)) {
-      setError('Use 3-20 chars: lowercase letters, numbers, underscores.')
+      setError('Use 3-20 chars: lowercase letters or numbers, with optional underscores (no spaces).')
       return
     }
 
@@ -68,12 +68,12 @@ export default function SetupUsername() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="your_name"
+              placeholder="yourname"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
           <p className="text-parchment/60 text-xs font-body">
-            Allowed: lowercase letters, numbers, underscores.
+            Allowed: lowercase letters and numbers. Underscore is optional.
           </p>
           <button
             type="submit"
