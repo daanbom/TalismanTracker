@@ -55,10 +55,16 @@ export default function GroupDirectory() {
             const isMember = memberGroupIds.has(group.id)
             const request = requestsByGroupId[group.id]
             const isPending = request?.status === 'pending'
+            const memberCount = group.memberCount ?? 0
 
             return (
               <li key={group.id} className="flex items-center justify-between px-4 py-3">
-                <span className="text-parchment font-heading">{group.name}</span>
+                <div>
+                  <p className="text-parchment font-heading">{group.name}</p>
+                  <p className="text-xs text-parchment/50 font-body">
+                    {memberCount} member{memberCount === 1 ? '' : 's'}
+                  </p>
+                </div>
                 {isMember ? (
                   <span className="text-xs text-parchment/50 font-body">Member</span>
                 ) : isPending ? (
