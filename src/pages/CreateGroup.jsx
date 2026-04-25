@@ -11,6 +11,12 @@ function generateInviteCode() {
   return Array.from(bytes, (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 12)
 }
 
+function isDuplicateGroupNameError(error) {
+  if (!error || error.code !== '23505') return false
+  const details = `${error.message ?? ''} ${error.details ?? ''} ${error.hint ?? ''}`.toLowerCase()
+  return details.includes('groups_name_unique_ci') || details.includes('lower(btrim(name))')
+}
+
 export default function CreateGroup() {
   const { user } = useAuth()
   const { data: player } = useCurrentPlayer()
@@ -37,7 +43,11 @@ export default function CreateGroup() {
       .select()
       .single()
     if (groupErr) {
-      setError(groupErr.message)
+      setError(
+        isDuplicateGroupNameError(groupErr)
+          ? 'A group with that name already exists.'
+          : (groupErr.message ?? 'Failed to create group.')
+      )
       setSubmitting(false)
       return
     }
