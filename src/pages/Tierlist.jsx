@@ -121,14 +121,37 @@ function CharacterTile({
 }
 
 function CharacterCard({ iconKey, name, fallback }) {
-  const [errored, setErrored] = useState(false)
-  if (errored) return fallback
+  const [displayedKey, setDisplayedKey] = useState(iconKey)
+  const [failedKeys, setFailedKeys] = useState(() => new Set())
+
+  useEffect(() => {
+    if (iconKey === displayedKey || failedKeys.has(iconKey)) return
+    let active = true
+    const image = new Image()
+    image.src = `/characters/${iconKey}.webp`
+    image.onload = () => {
+      if (!active) return
+      setDisplayedKey(iconKey)
+    }
+    image.onerror = () => {
+      if (!active) return
+      setFailedKeys(prev => {
+        const next = new Set(prev)
+        next.add(iconKey)
+        return next
+      })
+    }
+    return () => {
+      active = false
+    }
+  }, [iconKey, displayedKey, failedKeys])
+
+  if (failedKeys.has(iconKey)) return fallback
   return (
     <img
-      src={`/characters/${iconKey}.webp`}
+      src={`/characters/${displayedKey}.webp`}
       alt={name}
       className="w-full h-full object-cover"
-      onError={() => setErrored(true)}
     />
   )
 }
@@ -149,9 +172,8 @@ function CharacterDetailPanel({ icon }) {
         </p>
         <h3 className="font-heading text-2xl text-parchment tracking-wide">{icon.name}</h3>
       </div>
-      <div className="w-full max-w-lg rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70">
+      <div className="w-full max-w-lg aspect-[3/2] rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70">
         <CharacterCard
-          key={icon.key}
           iconKey={icon.key}
           name={icon.name}
           fallback={
@@ -392,7 +414,7 @@ export default function Tierlist() {
     setOverZone(tier)
     setDropTarget({ tier, beforeKey, side })
   }
-  const handleHover = key => setPreviewKey(key)
+  const handleHover = key => setPreviewKey(prev => (prev === key ? prev : key))
   const previewIcon = iconsByKey.get(previewKey ?? poolKeys[0]) ?? null
 
   const handleDrop = (targetZone, opts) => {

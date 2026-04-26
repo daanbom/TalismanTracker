@@ -27,7 +27,7 @@ export function useLeaderboardStats(groupId) {
           is_winner,
           winning_character,
           player:players ( id, name ),
-          game:games ( id, created_at )
+          game:games ( id, date, created_at )
         `)
 
       let deathQuery = supabase

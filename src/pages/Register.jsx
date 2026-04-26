@@ -28,7 +28,7 @@ export default function Register() {
 
     const normalizedUsername = normalizeUsername(username)
     if (!isValidUsername(normalizedUsername)) {
-      setError('Username must be 3-20 chars: lowercase letters, numbers, underscores.')
+      setError('Username must be 3-20 chars: lowercase letters or numbers, with optional underscores (no spaces).')
       return
     }
 
@@ -49,7 +49,13 @@ export default function Register() {
       return
     }
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { username: normalizedUsername },
+      },
+    })
     if (signUpError) {
       setError(signUpError.message)
       setStatus('idle')
@@ -57,7 +63,13 @@ export default function Register() {
     }
 
     const newUserId = signUpData?.user?.id
+    const hasSession = Boolean(signUpData?.session?.access_token)
     if (!newUserId) {
+      navigate('/login', { replace: true })
+      return
+    }
+
+    if (!hasSession) {
       navigate('/login', { replace: true })
       return
     }
@@ -96,7 +108,7 @@ export default function Register() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="your_name"
+              placeholder="yourname"
               className="w-full px-4 py-2 bg-deep-light/60 border border-gold-dim/40 text-parchment rounded focus:outline-none focus:border-gold"
             />
           </label>
