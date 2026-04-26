@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
+import { useAuth } from './useAuth'
 
 export function useGroupMembers(groupId) {
   return useQuery({
@@ -66,6 +67,34 @@ export function useRenameGroup(groupId) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['groups'] })
+    },
+  })
+}
+
+export function useLeaveGroup(groupId) {
+  const qc = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!groupId) throw new Error('No group selected.')
+      if (!user?.id) throw new Error('You must be signed in to leave a group.')
+
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['groups'] })
+      qc.invalidateQueries({ queryKey: ['groupMembers', groupId] })
+      qc.invalidateQueries({ queryKey: ['groupInvites', groupId] })
+      qc.invalidateQueries({ queryKey: ['groupJoinRequests', groupId] })
+      qc.invalidateQueries({ queryKey: ['games'] })
+      qc.invalidateQueries({ queryKey: ['players'] })
     },
   })
 }

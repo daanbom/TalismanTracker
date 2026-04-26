@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useActiveGroup } from '../hooks/useActiveGroup'
+import { useAuth } from '../hooks/useAuth'
+import { useLeaveGroup } from '../hooks/useGroupMembers'
 import { useGroupJoinRequests } from '../hooks/useJoinRequests'
 import { getGroupSwitchDestination } from '../lib/groupNavigation'
 
 export default function GroupSwitcher({ onNavigate }) {
   const { activeGroup, groups, setActiveGroup } = useActiveGroup()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
@@ -28,6 +31,7 @@ export default function GroupSwitcher({ onNavigate }) {
   const pendingGroupId = isAdmin ? activeGroup?.id : null
   const { data: pendingRequests = [] } = useGroupJoinRequests(pendingGroupId)
   const pendingCount = pendingRequests.length
+  const leaveGroup = useLeaveGroup(activeGroup?.id ?? null)
 
   const choose = (id) => {
     const nextGroup = groups.find((g) => g.id === id)
@@ -50,6 +54,41 @@ export default function GroupSwitcher({ onNavigate }) {
     setOpen(false)
     onNavigate?.()
     navigate('/groups/new')
+  }
+
+  const onLeaveGroup = async () => {
+    if (!activeGroup) return
+
+    if (activeGroup.admin_user_id === user?.id) {
+      window.alert('Group owners cannot leave yet. Promote another admin and have them remove you.')
+      return
+    }
+
+    if (!window.confirm(`Leave "${activeGroup.name}"?`)) return
+
+    try {
+      await leaveGroup.mutateAsync()
+
+      const remainingGroups = groups.filter((g) => g.id !== activeGroup.id)
+      const nextGroup = remainingGroups[0] ?? null
+      const destination = getGroupSwitchDestination({
+        currentPathname: location.pathname,
+        nextGroupId: nextGroup?.id ?? null,
+        nextGroupIsAdmin: Boolean(nextGroup?.isAdmin),
+      })
+
+      setActiveGroup(nextGroup?.id ?? null)
+      setOpen(false)
+      onNavigate?.()
+
+      if (destination) {
+        navigate(destination)
+      } else if (!nextGroup) {
+        navigate('/groups')
+      }
+    } catch (e) {
+      window.alert(e?.message ?? 'Failed to leave group.')
+    }
   }
 
   return (
@@ -93,6 +132,16 @@ export default function GroupSwitcher({ onNavigate }) {
               className="w-full text-left px-3 py-2 text-sm font-heading text-parchment hover:bg-gold/5 transition-colors border-t border-gold-dim/20"
             >
               Group settings{pendingCount > 0 ? ` (${pendingCount})` : ''}
+            </button>
+          )}
+          {activeGroup && (
+            <button
+              type="button"
+              onClick={onLeaveGroup}
+              disabled={leaveGroup.isPending}
+              className="w-full text-left px-3 py-2 text-sm font-heading text-red-300 border-t border-gold-dim/20 hover:bg-red-950/30 transition-colors disabled:opacity-50"
+            >
+              {leaveGroup.isPending ? 'Leaving...' : 'Leave group'}
             </button>
           )}
           <button
