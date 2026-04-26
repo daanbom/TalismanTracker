@@ -1,4 +1,19 @@
 export function computeLeaderboard(gamePlayers, deathTypesByPlayer = new Map(), deathsRaw = []) {
+  const compareIso = (a, b) => {
+    if (!a && !b) return 0
+    if (!a) return -1
+    if (!b) return 1
+    return a.localeCompare(b)
+  }
+
+  const compareGameResults = (a, b) => {
+    const dateCmp = compareIso(a.playedOn, b.playedOn)
+    if (dateCmp !== 0) return dateCmp
+    const createdCmp = compareIso(a.createdAt, b.createdAt)
+    if (createdCmp !== 0) return createdCmp
+    return (a.gameId ?? '').localeCompare(b.gameId ?? '')
+  }
+
   const byPlayer = new Map()
   const gameHasWinner = new Map()
   const playerNames = new Map()
@@ -40,7 +55,9 @@ export function computeLeaderboard(gamePlayers, deathTypesByPlayer = new Map(), 
       )
     }
     row.game_results.push({
-      date: gp.game?.created_at ?? '',
+      gameId: gp.game_id ?? '',
+      playedOn: gp.game?.date ?? '',
+      createdAt: gp.game?.created_at ?? '',
       isWin: !!gp.is_winner,
     })
   }
@@ -107,7 +124,7 @@ export function computeLeaderboard(gamePlayers, deathTypesByPlayer = new Map(), 
       }
 
       // Streaks
-      const results = row.game_results.sort((a, b) => a.date.localeCompare(b.date))
+      const results = [...row.game_results].sort(compareGameResults)
       let bestWinStreak = 0
       let longestLoseStreak = 0
       let winRun = 0
