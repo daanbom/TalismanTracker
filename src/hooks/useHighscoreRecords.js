@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
+import { matchesPlayerCountFilter } from '../lib/playerCountFilters'
 
 const CATEGORY_LABELS = {
   most_gold: 'Most Gold',
@@ -20,24 +21,35 @@ const DERIVED_CATEGORIES = {
   most_toad_times: 'total_toad_times',
 }
 
-export function useHighscoreRecords(groupId) {
+export function useHighscoreRecords(groupId, playerCountFilter = 'all') {
+  const emptyRecords = () => Object.keys(CATEGORY_LABELS).map((category) => ({
+    category,
+    label: CATEGORY_LABELS[category],
+    entries: [],
+  }))
+
   return useQuery({
-    queryKey: ['highscoreRecords', groupId ?? 'global'],
+    queryKey: ['highscoreRecords', groupId ?? 'global', playerCountFilter],
     queryFn: async () => {
       let gameIds = null
 
-      if (groupId) {
-        const { data: gamesData, error: gamesError } = await supabase
+      if (groupId || playerCountFilter !== 'all') {
+        let gamesQuery = supabase
           .from('games')
-          .select('id')
-          .eq('group_id', groupId)
+          .select('id, players:game_players ( id )')
+          .order('date', { ascending: false })
+
+        if (groupId) {
+          gamesQuery = gamesQuery.eq('group_id', groupId)
+        }
+
+        const { data: gamesData, error: gamesError } = await gamesQuery
         if (gamesError) throw gamesError
-        gameIds = gamesData.map(g => g.id)
-        if (gameIds.length === 0) return Object.keys(CATEGORY_LABELS).map((category) => ({
-          category,
-          label: CATEGORY_LABELS[category],
-          entries: [],
-        }))
+        const filteredGames = (gamesData ?? []).filter((game) =>
+          matchesPlayerCountFilter((game.players ?? []).length, playerCountFilter)
+        )
+        gameIds = filteredGames.map((g) => g.id)
+        if (gameIds.length === 0) return emptyRecords()
       }
 
       let hsQuery = supabase

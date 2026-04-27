@@ -3,6 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import GroupSwitcher from './GroupSwitcher'
 import PendingInvitesBanner from './PendingInvitesBanner'
+import { BUY_ME_A_COFFEE_COPY, BUY_ME_A_COFFEE_URL } from '../lib/supportLinks'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -153,9 +154,22 @@ export default function Layout({ children }) {
             <p className="text-muted text-sm font-body">
               Talisman Tracker — 4th Edition, All Expansions
             </p>
-            <p className="text-muted/50 text-xs font-body">
-              For the fellowship, by the fellowship
-            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-muted/50 text-xs font-body">
+                For the fellowship, by the fellowship
+              </p>
+              {BUY_ME_A_COFFEE_URL && (
+                <a
+                  href={BUY_ME_A_COFFEE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-full border border-gold-dim/20 px-3 py-1.5 text-xs font-heading tracking-wide text-gold/80 transition-colors hover:border-gold-dim/45 hover:text-gold"
+                >
+                  <span aria-hidden>☕</span>
+                  {BUY_ME_A_COFFEE_COPY.footerLabel}
+                </a>
+              )}
+            </div>
           </div>
         </div>
       </footer>

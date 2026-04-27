@@ -202,6 +202,7 @@ export function computeEndingStats(games) {
         playerWins: 0,
         talismanWins: 0,
         totalDeaths: 0,
+        winningPlayerCounts: new Map(),
         winningCharCounts: new Map(),
         deathTypeCounts: new Map(),
       })
@@ -212,6 +213,12 @@ export function computeEndingStats(games) {
     if (winners.length > 0) {
       row.playerWins += 1
       for (const w of winners) {
+        if (w.player?.name) {
+          row.winningPlayerCounts.set(
+            w.player.name,
+            (row.winningPlayerCounts.get(w.player.name) ?? 0) + 1,
+          )
+        }
         if (w.winning_character) {
           row.winningCharCounts.set(
             w.winning_character,
@@ -234,6 +241,15 @@ export function computeEndingStats(games) {
   }
 
   return Array.from(stats.values()).map((row) => {
+    let topWinner = null
+    let topWinnerCount = 0
+    for (const [winner, count] of row.winningPlayerCounts.entries()) {
+      if (count > topWinnerCount) {
+        topWinner = winner
+        topWinnerCount = count
+      }
+    }
+
     let topChar = null
     let topCount = 0
     for (const [char, count] of row.winningCharCounts.entries()) {
@@ -260,7 +276,8 @@ export function computeEndingStats(games) {
       playerWinRate: row.times > 0 ? row.playerWins / row.times : 0,
       talismanWinRate: row.times > 0 ? row.talismanWins / row.times : 0,
       avgDeathsPerGame: row.times > 0 ? row.totalDeaths / row.times : 0,
-      topWinningCharacter: topChar ? `${topChar} (${topCount})` : 'NA',
+      topWinner: topWinner ? `${topWinner} (${topWinnerCount})` : 'NA',
+      topCharacter: topChar ? `${topChar} (${topCount})` : 'NA',
       topDeath: topDeathType ? `${topDeathType} (${topDeathCount})` : 'NA',
     }
   })
