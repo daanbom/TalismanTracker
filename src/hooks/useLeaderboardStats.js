@@ -1,20 +1,30 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
 import { computeLeaderboard } from '../lib/statsHelpers'
+import { matchesPlayerCountFilter } from '../lib/playerCountFilters'
 
-export function useLeaderboardStats(groupId) {
+export function useLeaderboardStats(groupId, playerCountFilter = 'all') {
   return useQuery({
-    queryKey: ['leaderboardStats', groupId ?? 'global'],
+    queryKey: ['leaderboardStats', groupId ?? 'global', playerCountFilter],
     queryFn: async () => {
       let gameIds = null
 
-      if (groupId) {
-        const { data: gamesData, error: gamesError } = await supabase
+      if (groupId || playerCountFilter !== 'all') {
+        let gamesQuery = supabase
           .from('games')
-          .select('id')
-          .eq('group_id', groupId)
+          .select('id, players:game_players ( id )')
+          .order('date', { ascending: false })
+
+        if (groupId) {
+          gamesQuery = gamesQuery.eq('group_id', groupId)
+        }
+
+        const { data: gamesData, error: gamesError } = await gamesQuery
         if (gamesError) throw gamesError
-        gameIds = gamesData.map(g => g.id)
+        const filteredGames = (gamesData ?? []).filter((game) =>
+          matchesPlayerCountFilter((game.players ?? []).length, playerCountFilter)
+        )
+        gameIds = filteredGames.map((g) => g.id)
         if (gameIds.length === 0) return []
       }
 

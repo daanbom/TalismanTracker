@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useGames } from '../hooks/useGames'
 import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
+import { BUY_ME_A_COFFEE_COPY, BUY_ME_A_COFFEE_URL } from '../lib/supportLinks'
 
 function CornerFlourish({ position }) {
   const cornerClass = {
@@ -373,6 +374,33 @@ export default function Home() {
           ))}
         </div>
       </section>
+
+      {BUY_ME_A_COFFEE_URL && (
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
+          <div className="card-ornate bg-surface border border-gold-dim/15 rounded-xl p-6 sm:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              <div>
+                <p className="text-gold/80 font-heading text-sm tracking-wider uppercase mb-2">Support</p>
+                <h2 className="font-heading text-2xl text-parchment tracking-wide mb-2">
+                  {BUY_ME_A_COFFEE_COPY.homeTitle}
+                </h2>
+                <p className="text-muted font-body max-w-2xl">
+                  {BUY_ME_A_COFFEE_COPY.homeBody}
+                </p>
+              </div>
+              <a
+                href={BUY_ME_A_COFFEE_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-gold inline-flex items-center justify-center gap-2 shrink-0"
+              >
+                <span aria-hidden>☕</span>
+                {BUY_ME_A_COFFEE_COPY.buttonLabel}
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Recent activity teaser */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
