@@ -25,6 +25,7 @@ import HouseRules from './pages/HouseRules'
 import HouseRulesContent from './pages/HouseRulesContent'
 import Rulebooks from './pages/Rulebooks'
 import Tierlist from './pages/Tierlist'
+import AverageTierlist from './pages/AverageTierlist'
 
 const queryClient = new QueryClient()
 
@@ -62,6 +63,7 @@ export default function App() {
               <Route path="/games/:id" element={<GameDetail />} />
               <Route path="/players" element={<Players />} />
               <Route path="/players/:id/tierlist" element={<Tierlist />} />
+              <Route path="/tierlists/average" element={<AverageTierlist />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/counters" element={<Counters />} />
               <Route path="/house-rules" element={<HouseRules />} />

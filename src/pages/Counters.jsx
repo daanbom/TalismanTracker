@@ -118,11 +118,11 @@ export default function Counters() {
 
   if (scope === 'group' && !activeGroupId) {
     return (
-      <GroupRequiredState
-        title="Select a group to update encounter counters"
-        body="Global view shows the combined totals across your groups. Pick an active group when you want to edit its counters."
-      />
-    )
+        <GroupRequiredState
+          title="Select a group to update encounter counters"
+          body="Global view shows the combined totals across the full platform. Pick an active group when you want to edit its counters."
+        />
+      )
   }
 
   return (

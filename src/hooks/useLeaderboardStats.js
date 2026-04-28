@@ -7,6 +7,37 @@ export function useLeaderboardStats(groupId, playerCountFilter = 'all') {
   return useQuery({
     queryKey: ['leaderboardStats', groupId ?? 'global', playerCountFilter],
     queryFn: async () => {
+      if (!groupId) {
+        const { data, error } = await supabase.rpc('get_platform_leaderboard_payload', {
+          p_player_count_filter: playerCountFilter,
+        })
+        if (error) throw error
+
+        const payload = data ?? {}
+        const gpRows = payload.game_players ?? []
+        const deathRows = payload.deaths ?? []
+
+        const deathCounts = new Map()
+        const deathTypesByPlayer = new Map()
+        for (const d of deathRows) {
+          const key = `${d.game_id}::${d.player_id}`
+          deathCounts.set(key, (deathCounts.get(key) ?? 0) + 1)
+
+          const typeName = d.death_type?.name
+          if (typeName) {
+            const counts = deathTypesByPlayer.get(d.player_id) ?? new Map()
+            counts.set(typeName, (counts.get(typeName) ?? 0) + 1)
+            deathTypesByPlayer.set(d.player_id, counts)
+          }
+        }
+
+        const normalizedGp = gpRows.map((gp) => ({
+          ...gp,
+          total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
+        }))
+        return computeLeaderboard(normalizedGp, deathTypesByPlayer, deathRows)
+      }
+
       let gameIds = null
 
       if (groupId || playerCountFilter !== 'all') {
