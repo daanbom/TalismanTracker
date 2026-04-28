@@ -112,10 +112,17 @@ const pct = (v) => `${(v * 100).toFixed(1)}%`
 function CharactersTab({ games, allCharacters }) {
   const [expansionFilter, setExpansionFilter] = useState('all')
   const [selectedPlayer, setSelectedPlayer] = useState('')
-  const { sortKey, sortDir, toggle, sort } = useSort('games', 'desc')
-  const playerSort = useSort('games', 'desc', {
+  const characterTieBreakers = {
+    character: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    expansion: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
     games: [{ key: 'wins', dir: 'desc' }],
-  })
+    wins: [{ key: 'games', dir: 'desc' }],
+    winRate: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    deaths: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    deathRate: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+  }
+  const { sortKey, sortDir, toggle, sort } = useSort('games', 'desc', characterTieBreakers)
+  const playerSort = useSort('games', 'desc', characterTieBreakers)
 
   const rows = useMemo(
     () => computeCharacterStats(games, allCharacters),

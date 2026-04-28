@@ -6,6 +6,18 @@ export function useEncounterScores(groupId) {
   return useQuery({
     queryKey: ['encounterScores', groupId ?? 'global'],
     queryFn: async () => {
+      if (!groupId) {
+        const { data, error } = await supabase.rpc('get_platform_encounter_totals')
+        if (error) throw error
+        return (data ?? []).map((row) => ({
+          id: `global-${row.encounter_name}`,
+          encounterName: row.encounter_name,
+          creatureWins: Number(row.creature_wins ?? 0),
+          playerWins: Number(row.player_wins ?? 0),
+          groupId: null,
+        }))
+      }
+
       let query = supabase
         .from('encounter_scores')
         .select('id, encounter_name, creature_wins, player_wins, group_id')
@@ -23,7 +35,7 @@ export function useEncounterScores(groupId) {
         groupId: row.group_id,
       }))
 
-      return groupId ? rows : aggregateEncounterScores(rows)
+      return aggregateEncounterScores(rows)
     },
   })
 }

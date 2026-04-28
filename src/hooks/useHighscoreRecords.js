@@ -31,6 +31,65 @@ export function useHighscoreRecords(groupId, playerCountFilter = 'all') {
   return useQuery({
     queryKey: ['highscoreRecords', groupId ?? 'global', playerCountFilter],
     queryFn: async () => {
+      if (!groupId) {
+        const { data, error } = await supabase.rpc('get_platform_highscore_payload', {
+          p_player_count_filter: playerCountFilter,
+        })
+        if (error) throw error
+
+        const payload = data ?? {}
+        const hsRows = payload.highscores ?? []
+        const gpRows = payload.game_players ?? []
+        const deathRows = payload.deaths ?? []
+
+        const deathCounts = new Map()
+        for (const d of deathRows) {
+          const key = `${d.game_id}::${d.player_id}`
+          deathCounts.set(key, (deathCounts.get(key) ?? 0) + 1)
+        }
+
+        const gpWithDeaths = gpRows.map(gp => ({
+          ...gp,
+          total_deaths: deathCounts.get(`${gp.game_id}::${gp.player?.id}`) ?? 0,
+        }))
+
+        const topByCategory = new Map()
+        for (const row of hsRows) {
+          if (!topByCategory.has(row.category)) topByCategory.set(row.category, [])
+          topByCategory.get(row.category).push(row)
+        }
+
+        for (const [category, column] of Object.entries(DERIVED_CATEGORIES)) {
+          const rows = []
+          for (const gp of gpWithDeaths) {
+            const value = Number(gp[column] ?? 0)
+            if (value <= 0) continue
+            rows.push({ category, value, player: gp.player, game: gp.game })
+          }
+          topByCategory.set(category, rows)
+        }
+
+        for (const [category, rows] of topByCategory) {
+          rows.sort((a, b) => Number(b.value) - Number(a.value))
+          topByCategory.set(category, rows.slice(0, 5))
+        }
+
+        return Object.keys(CATEGORY_LABELS).map((category) => {
+          const rows = topByCategory.get(category) ?? []
+          return {
+            category,
+            label: CATEGORY_LABELS[category],
+            entries: rows.map((row, _i, arr) => ({
+              rank: arr.findIndex((r) => Number(r.value) === Number(row.value)) + 1,
+              player: row.player?.name ?? null,
+              value: row.value,
+              game_date: row.game?.date ?? null,
+              game_id: row.game?.id ?? null,
+            })),
+          }
+        })
+      }
+
       let gameIds = null
 
       if (groupId || playerCountFilter !== 'all') {

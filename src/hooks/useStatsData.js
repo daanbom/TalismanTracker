@@ -5,6 +5,22 @@ export function useStatsData(groupId) {
   return useQuery({
     queryKey: ['stats', groupId ?? 'global'],
     queryFn: async () => {
+      if (!groupId) {
+        const { data, error } = await supabase.rpc('get_platform_stats_games')
+        if (error) throw error
+        return (data ?? []).map(game => {
+          const allDeaths = game.deaths ?? []
+          return {
+            ...game,
+            players: (game.players ?? []).map(gp => ({
+              ...gp,
+              total_deaths: allDeaths.filter(d => d.player_id === gp.player.id).length,
+              deaths: allDeaths.filter(d => d.player_id === gp.player.id),
+            })),
+          }
+        })
+      }
+
       let query = supabase
         .from('games')
         .select(`
