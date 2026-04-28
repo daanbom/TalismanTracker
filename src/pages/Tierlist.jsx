@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useIcons } from '../hooks/useIcons'
+import { usePets } from '../hooks/usePets'
 import { AVAILABLE_ICONS } from '../data/availableIcons'
-
-const iconExtMap = new Map(AVAILABLE_ICONS.map(i => [i.key, i.ext]))
 import { usePlayers } from '../hooks/usePlayers'
 import { useCurrentPlayer } from '../hooks/useCurrentPlayer'
 import { useTierlist, EMPTY_TIERS } from '../hooks/useTierlist'
 import { useSaveTierlist } from '../hooks/useSaveTierlist'
 import { canEditTierlist } from '../lib/accessControl'
+
+const iconExtMap = new Map(AVAILABLE_ICONS.map(i => [i.key, i.ext]))
 
 const TIERS = ['S', 'A', 'B', 'C', 'D', 'F']
 
@@ -37,7 +38,46 @@ const EXPANSION_LABELS = {
   cataclysm: 'The Cataclysm',
 }
 
-function CharacterImage({ iconKey, name, className, fallbackTextSize = 'text-xs' }) {
+const LIST_CONFIG = {
+  character: {
+    poolTitle: 'Character Pool',
+    emptyPool: 'All characters ranked.',
+    emptyTier: 'Drop characters here',
+    hoverText: 'Hover a character to see details.',
+    editHint: 'Drag characters between tiers. Hover a portrait for details.',
+  },
+  pet: {
+    poolTitle: 'Pet Pool',
+    emptyPool: 'All pets ranked.',
+    emptyTier: 'Drop pets here',
+    hoverText: 'Hover a pet to see details.',
+    editHint: 'Drag pets between tiers. Hover a portrait for details.',
+  },
+}
+
+function tabToListType(tab) {
+  return tab === 'pets' ? 'pet' : 'character'
+}
+
+function listTypeToTab(listType) {
+  return listType === 'pet' ? 'pets' : 'characters'
+}
+
+function tileSrcFor(item, listType) {
+  if (listType === 'pet') {
+    return `/pets/${item.key}.png`
+  }
+  return `/icons/${item.key}${iconExtMap.get(item.key) ?? '.png'}`
+}
+
+function detailSrcFor(item, listType) {
+  if (listType === 'pet') {
+    return `/pets/${item.key}.png`
+  }
+  return `/characters/${item.key}.webp`
+}
+
+function EntityImage({ src, name, className, fallbackTextSize = 'text-xs' }) {
   const [errored, setErrored] = useState(false)
   if (errored) {
     return (
@@ -50,7 +90,7 @@ function CharacterImage({ iconKey, name, className, fallbackTextSize = 'text-xs'
   }
   return (
     <img
-      src={`/icons/${iconKey}${iconExtMap.get(iconKey) ?? '.png'}`}
+      src={src}
       alt={name}
       className={className}
       onError={() => setErrored(true)}
@@ -58,8 +98,9 @@ function CharacterImage({ iconKey, name, className, fallbackTextSize = 'text-xs'
   )
 }
 
-function CharacterTile({
-  icon,
+function TierTile({
+  item,
+  listType,
   onDragStart,
   onDragEnd,
   onHover,
@@ -69,6 +110,12 @@ function CharacterTile({
   dropSide,
   isReadOnly = false,
 }) {
+  const isPet = listType === 'pet'
+  const tileFrameClass = isPet ? 'w-12 h-16 rounded-md' : 'w-14 h-14 rounded-lg'
+  const tileImageClass = isPet
+    ? 'w-full h-full object-contain pointer-events-none p-0.5 bg-surface'
+    : 'w-full h-full object-cover pointer-events-none'
+
   const handleDragOver = e => {
     if (!onTileDrop || isReadOnly) return
     e.preventDefault()
@@ -76,16 +123,18 @@ function CharacterTile({
     e.dataTransfer.dropEffect = 'move'
     const rect = e.currentTarget.getBoundingClientRect()
     const side = e.clientX < rect.left + rect.width / 2 ? 'before' : 'after'
-    onTileDrop.hover(icon.key, side)
+    onTileDrop.hover(item.key, side)
   }
+
   const handleDrop = e => {
     if (!onTileDrop || isReadOnly) return
     e.preventDefault()
     e.stopPropagation()
     const rect = e.currentTarget.getBoundingClientRect()
     const side = e.clientX < rect.left + rect.width / 2 ? 'before' : 'after'
-    onTileDrop.drop(icon.key, side)
+    onTileDrop.drop(item.key, side)
   }
+
   return (
     <div className="relative">
       {dropSide === 'before' && <div className="absolute -left-1 top-0 bottom-0 w-0.5 bg-gold rounded-full pointer-events-none" />}
@@ -95,105 +144,101 @@ function CharacterTile({
         onDragStart={e => {
           if (isReadOnly) return
           e.dataTransfer.effectAllowed = 'move'
-          e.dataTransfer.setData('text/plain', icon.key)
-          onDragStart(icon.key)
+          e.dataTransfer.setData('text/plain', item.key)
+          onDragStart(item.key)
         }}
         onDragEnd={onDragEnd}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
-        onMouseEnter={() => onHover(icon.key)}
-        onFocus={() => onHover(icon.key)}
+        onMouseEnter={() => onHover(item.key)}
+        onFocus={() => onHover(item.key)}
         tabIndex={isReadOnly ? -1 : 0}
-        className={`w-14 h-14 rounded-lg overflow-hidden border bg-deep cursor-grab active:cursor-grabbing transition-colors ${
+        className={`${tileFrameClass} overflow-hidden border bg-deep cursor-grab active:cursor-grabbing transition-colors ${
           isPreviewed ? 'border-gold ring-1 ring-gold/40' : 'border-gold-dim/30 hover:border-gold/60'
         } ${isDragging ? 'opacity-40' : ''} ${isReadOnly ? 'cursor-default active:cursor-default' : ''}`}
-        title={icon.name}
+        title={item.name}
       >
-        <CharacterImage
-          key={icon.key}
-          iconKey={icon.key}
-          name={icon.name}
-          className="w-full h-full object-cover pointer-events-none"
+        <EntityImage
+          key={item.key}
+          src={tileSrcFor(item, listType)}
+          name={item.name}
+          className={tileImageClass}
         />
       </div>
     </div>
   )
 }
 
-function CharacterCard({ iconKey, name, fallback }) {
-  const [displayedKey, setDisplayedKey] = useState(iconKey)
-  const [failedKeys, setFailedKeys] = useState(() => new Set())
+function DetailPanel({ item, listType, hoverText }) {
+  const isPet = listType === 'pet'
+  const detailFrameClass = isPet
+    ? 'w-full max-w-sm aspect-[5/7] rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70'
+    : 'w-full max-w-lg aspect-[3/2] rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70'
 
-  useEffect(() => {
-    if (iconKey === displayedKey || failedKeys.has(iconKey)) return
-    let active = true
-    const image = new Image()
-    image.src = `/characters/${iconKey}.webp`
-    image.onload = () => {
-      if (!active) return
-      setDisplayedKey(iconKey)
-    }
-    image.onerror = () => {
-      if (!active) return
-      setFailedKeys(prev => {
-        const next = new Set(prev)
-        next.add(iconKey)
-        return next
-      })
-    }
-    return () => {
-      active = false
-    }
-  }, [iconKey, displayedKey, failedKeys])
-
-  if (failedKeys.has(iconKey)) return fallback
-  return (
-    <img
-      src={`/characters/${displayedKey}.webp`}
-      alt={name}
-      className="w-full h-full object-cover"
-    />
-  )
-}
-
-function CharacterDetailPanel({ icon }) {
-  if (!icon) {
+  if (!item) {
     return (
       <div className="bg-surface border border-gold-dim/15 rounded-xl p-6 flex items-center justify-center min-h-28">
-        <p className="text-muted text-sm font-body italic">Hover a character to see details.</p>
+        <p className="text-muted text-sm font-body italic">{hoverText}</p>
       </div>
     )
   }
+
+  function PetDetailArtwork() {
+    const [failed, setFailed] = useState(false)
+    if (failed) {
+      return (
+        <div className="w-full h-full p-6 flex flex-col items-center justify-center gap-3 text-center">
+          <p className="font-heading text-lg text-gold-light">{item.name}</p>
+          <p className="text-sm font-body text-parchment/80">
+            {item.ability_text ?? 'Image coming soon.'}
+          </p>
+        </div>
+      )
+    }
+    return (
+      <img
+        src={detailSrcFor(item, listType)}
+        alt={item.name}
+        className="w-full h-full object-contain p-1 bg-surface"
+        onError={() => setFailed(true)}
+      />
+    )
+  }
+
   return (
     <div className="bg-surface border border-gold-dim/20 rounded-xl p-6 flex flex-col items-center gap-4">
       <div className="text-center">
         <p className="text-xs font-body text-gold-dim uppercase tracking-widest mb-1">
-          {EXPANSION_LABELS[icon.expansion] ?? icon.expansion ?? ''}
+          {EXPANSION_LABELS[item.expansion] ?? item.expansion ?? ''}
         </p>
-        <h3 className="font-heading text-2xl text-parchment tracking-wide">{icon.name}</h3>
+        <h3 className="font-heading text-2xl text-parchment tracking-wide">{item.name}</h3>
       </div>
-      <div className="w-full max-w-lg aspect-[3/2] rounded-lg overflow-hidden border border-gold-dim/40 bg-deep shadow-2xl shadow-black/70">
-        <CharacterCard
-          iconKey={icon.key}
-          name={icon.name}
-          fallback={
-            <CharacterImage
-              iconKey={icon.key}
-              name={icon.name}
-              className="w-full h-full object-cover"
-              fallbackTextSize="text-base"
-            />
-          }
-        />
+      <div className={detailFrameClass}>
+        {listType === 'pet' ? (
+          <PetDetailArtwork key={item.key} />
+        ) : (
+          <EntityImage
+            src={detailSrcFor(item, listType)}
+            name={item.name}
+            className="w-full h-full object-cover"
+            fallbackTextSize="text-base"
+          />
+        )}
       </div>
+      {listType === 'pet' && item.ability_text && (
+        <p className="text-sm font-body text-parchment/80 text-center max-w-lg">
+          {item.ability_text}
+        </p>
+      )}
     </div>
   )
 }
 
 function TierRow({
   tier,
-  iconKeys,
-  iconsByKey,
+  keys,
+  itemsByKey,
+  listType,
   onDrop,
   onDragOver,
   onDragStart,
@@ -204,6 +249,7 @@ function TierRow({
   draggingKey,
   previewKey,
   isOver,
+  emptyTier,
   isReadOnly = false,
 }) {
   const style = TIER_STYLES[tier]
@@ -211,15 +257,19 @@ function TierRow({
     hover: (beforeKey, side) => onTileHover(tier, beforeKey, side),
     drop: (beforeKey, side) => onDrop(tier, { beforeKey, side }),
   }
+
   return (
     <div
       onDragOver={e => {
         if (isReadOnly) return
-        e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver(tier)
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        onDragOver(tier)
       }}
       onDrop={e => {
         if (isReadOnly) return
-        e.preventDefault(); onDrop(tier)
+        e.preventDefault()
+        onDrop(tier)
       }}
       className={`flex items-stretch border rounded-lg overflow-hidden transition-colors ${style.row} ${isOver ? 'ring-2 ring-gold/60' : ''}`}
     >
@@ -227,17 +277,18 @@ function TierRow({
         {tier}
       </div>
       <div className="flex-1 min-h-[72px] p-2 flex flex-wrap gap-2 items-start">
-        {iconKeys.length === 0 ? (
-          <span className="text-muted/60 text-xs font-body italic self-center px-2">Drop characters here</span>
+        {keys.length === 0 ? (
+          <span className="text-muted/60 text-xs font-body italic self-center px-2">{emptyTier}</span>
         ) : (
-          iconKeys.map(key => {
-            const icon = iconsByKey.get(key)
-            if (!icon) return null
+          keys.map(key => {
+            const item = itemsByKey.get(key)
+            if (!item) return null
             const isDropTargetTile = dropTarget && dropTarget.tier === tier && dropTarget.beforeKey === key
             return (
-              <CharacterTile
+              <TierTile
                 key={key}
-                icon={icon}
+                item={item}
+                listType={listType}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
                 onHover={onHover}
@@ -256,8 +307,11 @@ function TierRow({
 }
 
 function Pool({
-  iconKeys,
-  iconsByKey,
+  listType,
+  poolTitle,
+  emptyPool,
+  keys,
+  itemsByKey,
   onDrop,
   onDragOver,
   onDragStart,
@@ -272,29 +326,33 @@ function Pool({
     <div
       onDragOver={e => {
         if (isReadOnly) return
-        e.preventDefault(); e.dataTransfer.dropEffect = 'move'; onDragOver('pool')
+        e.preventDefault()
+        e.dataTransfer.dropEffect = 'move'
+        onDragOver('pool')
       }}
       onDrop={e => {
         if (isReadOnly) return
-        e.preventDefault(); onDrop('pool')
+        e.preventDefault()
+        onDrop('pool')
       }}
       className={`bg-surface border border-gold-dim/20 rounded-xl p-4 transition-colors ${isOver ? 'ring-2 ring-gold/60' : ''}`}
     >
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-heading text-lg text-parchment tracking-wide">Character Pool</h2>
-        <span className="text-xs font-body text-muted">{iconKeys.length} unranked</span>
+        <h2 className="font-heading text-lg text-parchment tracking-wide">{poolTitle}</h2>
+        <span className="text-xs font-body text-muted">{keys.length} unranked</span>
       </div>
       <div className="flex flex-wrap gap-2 min-h-[72px]">
-        {iconKeys.length === 0 ? (
-          <p className="text-muted text-sm font-body italic">All characters ranked.</p>
+        {keys.length === 0 ? (
+          <p className="text-muted text-sm font-body italic">{emptyPool}</p>
         ) : (
-          iconKeys.map(key => {
-            const icon = iconsByKey.get(key)
-            if (!icon) return null
+          keys.map(key => {
+            const item = itemsByKey.get(key)
+            if (!item) return null
             return (
-              <CharacterTile
+              <TierTile
                 key={key}
-                icon={icon}
+                item={item}
+                listType={listType}
                 onDragStart={onDragStart}
                 onDragEnd={onDragEnd}
                 onHover={onHover}
@@ -313,12 +371,18 @@ function Pool({
 export default function Tierlist() {
   const { id: playerId } = useParams()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const listType = tabToListType(searchParams.get('tab'))
+  const config = LIST_CONFIG[listType]
 
   const playersQuery = usePlayers()
   const { data: currentPlayer, isLoading: currentPlayerLoading } = useCurrentPlayer()
-  const isPlayerVisible = (playersQuery.data ?? []).some(p => p.id === playerId)
   const iconsQuery = useIcons()
-  const tierlistQuery = useTierlist(playerId, { enabled: isPlayerVisible })
+  const petsQuery = usePets()
+
+  const isPlayerVisible = (playersQuery.data ?? []).some(p => p.id === playerId)
+  const tierlistQuery = useTierlist(playerId, listType, { enabled: isPlayerVisible })
   const save = useSaveTierlist()
 
   const player = useMemo(
@@ -327,11 +391,17 @@ export default function Tierlist() {
   )
   const canEdit = canEditTierlist({ currentPlayer, player })
 
-  const iconsByKey = useMemo(() => {
+  const sourceItems = useMemo(() => {
+    if (listType === 'pet') return petsQuery.data ?? []
+    return (iconsQuery.data ?? []).filter(i => i.key !== 'toad')
+  }, [listType, petsQuery.data, iconsQuery.data])
+  const sourceReady = listType === 'pet' ? petsQuery.isSuccess : iconsQuery.isSuccess
+
+  const itemsByKey = useMemo(() => {
     const map = new Map()
-    for (const i of iconsQuery.data ?? []) map.set(i.key, i)
+    for (const item of sourceItems) map.set(item.key, item)
     return map
-  }, [iconsQuery.data])
+  }, [sourceItems])
 
   const [tiers, setTiers] = useState(EMPTY_TIERS)
   const [isDirty, setIsDirty] = useState(false)
@@ -341,11 +411,9 @@ export default function Tierlist() {
   const [previewKey, setPreviewKey] = useState(null)
   const [dropTarget, setDropTarget] = useState(null)
 
-  // Seed local state from server data when it first arrives or changes identity.
-  // Filter out any dangling keys (characters renamed/removed in the icons table).
-  const queryStamp = tierlistQuery.dataUpdatedAt
-  if (tierlistQuery.data && iconsQuery.data && seededAt !== queryStamp) {
-    const validKeys = new Set(iconsQuery.data.filter(i => i.key !== 'toad').map(i => i.key))
+  const queryStamp = `${listType}:${tierlistQuery.dataUpdatedAt}`
+  if (tierlistQuery.data && sourceReady && seededAt !== queryStamp) {
+    const validKeys = new Set(sourceItems.map(i => i.key))
     const sanitized = {}
     for (const t of TIERS) {
       sanitized[t] = (tierlistQuery.data.tiers[t] ?? []).filter(k => validKeys.has(k))
@@ -357,13 +425,14 @@ export default function Tierlist() {
 
   useEffect(() => {
     if (!isDirty) return
-    const handler = e => { e.preventDefault(); e.returnValue = '' }
+    const handler = e => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
     window.addEventListener('beforeunload', handler)
     return () => window.removeEventListener('beforeunload', handler)
   }, [isDirty])
 
-  // Auto-scroll the window when dragging near the top/bottom edges of the viewport.
-  // The fixed nav bar (h-16 = 64px) covers the top, so the trigger zone starts below it.
   useEffect(() => {
     if (!draggingKey) return
     const NAV_OFFSET = 64
@@ -371,7 +440,11 @@ export default function Tierlist() {
     const MAX_SPEED = 18
     let cursorY = -1
     let frame = 0
-    const onDragOver = e => { cursorY = e.clientY }
+
+    const onDragOver = e => {
+      cursorY = e.clientY
+    }
+
     const tick = () => {
       const h = window.innerHeight
       let speed = 0
@@ -388,8 +461,10 @@ export default function Tierlist() {
       if (speed !== 0) window.scrollBy(0, speed)
       frame = requestAnimationFrame(tick)
     }
+
     window.addEventListener('dragover', onDragOver)
     frame = requestAnimationFrame(tick)
+
     return () => {
       window.removeEventListener('dragover', onDragOver)
       cancelAnimationFrame(frame)
@@ -402,23 +477,32 @@ export default function Tierlist() {
     return set
   }, [tiers])
 
-  const poolKeys = useMemo(() => {
-    const all = (iconsQuery.data ?? []).filter(i => i.key !== 'toad')
-    return all.filter(i => !placedKeys.has(i.key)).map(i => i.key)
-  }, [iconsQuery.data, placedKeys])
+  const poolKeys = useMemo(
+    () => sourceItems.filter(i => !placedKeys.has(i.key)).map(i => i.key),
+    [sourceItems, placedKeys],
+  )
+
+  const previewItem = itemsByKey.get(previewKey ?? poolKeys[0]) ?? null
 
   const handleDragStart = key => setDraggingKey(key)
-  const handleDragEnd = () => { setDraggingKey(null); setOverZone(null); setDropTarget(null) }
-  const handleDragOver = zone => { setOverZone(zone); setDropTarget(null) }
+  const handleDragEnd = () => {
+    setDraggingKey(null)
+    setOverZone(null)
+    setDropTarget(null)
+  }
+  const handleDragOver = zone => {
+    setOverZone(zone)
+    setDropTarget(null)
+  }
   const handleTileHover = (tier, beforeKey, side) => {
     setOverZone(tier)
     setDropTarget({ tier, beforeKey, side })
   }
   const handleHover = key => setPreviewKey(prev => (prev === key ? prev : key))
-  const previewIcon = iconsByKey.get(previewKey ?? poolKeys[0]) ?? null
 
   const handleDrop = (targetZone, opts) => {
     if (!draggingKey) return
+
     setTiers(prev => {
       const next = {}
       for (const t of TIERS) next[t] = (prev[t] ?? []).filter(k => k !== draggingKey)
@@ -435,6 +519,7 @@ export default function Tierlist() {
       }
       return next
     })
+
     setIsDirty(true)
     setDraggingKey(null)
     setOverZone(null)
@@ -444,7 +529,7 @@ export default function Tierlist() {
   const handleSave = () => {
     if (!canEdit) return
     save.mutate(
-      { playerId, tiers },
+      { playerId, listType, tiers },
       { onSuccess: () => setIsDirty(false) },
     )
   }
@@ -457,21 +542,38 @@ export default function Tierlist() {
     navigate('/players')
   }
 
-  const error = playersQuery.error || iconsQuery.error || tierlistQuery.error || save.error
+  const handleTabSwitch = nextType => {
+    if (nextType === listType) return
+    if (isDirty && !window.confirm('You have unsaved changes. Switch list anyway?')) return
+
+    setDraggingKey(null)
+    setOverZone(null)
+    setDropTarget(null)
+    setPreviewKey(null)
+
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('tab', listTypeToTab(nextType))
+      return next
+    })
+  }
+
+  const activeSourceError = listType === 'pet' ? petsQuery.error : iconsQuery.error
+  const error = playersQuery.error || activeSourceError || tierlistQuery.error || save.error
 
   if (!playersQuery.isLoading && !player) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <p className="text-muted text-sm font-body italic">Player not found.</p>
-        <Link to="/players" className="text-gold hover:text-gold-light text-sm font-body mt-4 inline-block">← Back to Players</Link>
+        <Link to="/players" className="text-gold hover:text-gold-light text-sm font-body mt-4 inline-block">Back to Players</Link>
       </div>
     )
   }
 
   const isLoading =
     playersQuery.isLoading ||
-    iconsQuery.isLoading ||
     currentPlayerLoading ||
+    (listType === 'pet' ? petsQuery.isLoading : iconsQuery.isLoading) ||
     (isPlayerVisible && tierlistQuery.isLoading)
 
   return (
@@ -481,16 +583,17 @@ export default function Tierlist() {
           onClick={handleBack}
           className="text-gold-dim hover:text-gold text-sm font-body transition-colors mb-3"
         >
-          ← Back to Players
+          Back to Players
         </button>
+
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-heading text-3xl text-parchment tracking-wide">
-              {player ? `${player.name}'s Tierlist` : 'Tierlist'}
+              {player ? `${player.name}'s Tierlists` : 'Tierlists'}
             </h1>
             <p className="text-muted text-sm font-body mt-1">
               {canEdit
-                ? 'Drag characters between tiers. Hover a portrait for details.'
+                ? config.editHint
                 : 'Read only view. Only the tierlist owner can edit.'}
             </p>
           </div>
@@ -509,6 +612,32 @@ export default function Tierlist() {
             )}
           </div>
         </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleTabSwitch('character')}
+            className={`px-3 py-1.5 rounded-md text-xs font-body tracking-wide border transition-colors ${
+              listType === 'character'
+                ? 'bg-gold/20 border-gold/60 text-gold-light'
+                : 'bg-surface border-gold-dim/30 text-muted hover:text-gold hover:border-gold/40'
+            }`}
+          >
+            Characters
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTabSwitch('pet')}
+            className={`px-3 py-1.5 rounded-md text-xs font-body tracking-wide border transition-colors ${
+              listType === 'pet'
+                ? 'bg-gold/20 border-gold/60 text-gold-light'
+                : 'bg-surface border-gold-dim/30 text-muted hover:text-gold hover:border-gold/40'
+            }`}
+          >
+            Pets
+          </button>
+        </div>
+
         <div className="ornament-divider mt-4">
           <span className="text-gold-dim">&#9670;</span>
         </div>
@@ -526,8 +655,9 @@ export default function Tierlist() {
             <TierRow
               key={t}
               tier={t}
-              iconKeys={tiers[t] ?? []}
-              iconsByKey={iconsByKey}
+              keys={tiers[t] ?? []}
+              itemsByKey={itemsByKey}
+              listType={listType}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragStart={handleDragStart}
@@ -538,14 +668,18 @@ export default function Tierlist() {
               draggingKey={draggingKey}
               previewKey={previewKey}
               isOver={overZone === t}
+              emptyTier={config.emptyTier}
               isReadOnly={!canEdit}
             />
           ))}
 
           <div className="pt-4">
             <Pool
-              iconKeys={poolKeys}
-              iconsByKey={iconsByKey}
+              listType={listType}
+              poolTitle={config.poolTitle}
+              emptyPool={config.emptyPool}
+              keys={poolKeys}
+              itemsByKey={itemsByKey}
               onDrop={handleDrop}
               onDragOver={handleDragOver}
               onDragStart={handleDragStart}
@@ -559,7 +693,7 @@ export default function Tierlist() {
           </div>
 
           <div className="pt-4">
-            <CharacterDetailPanel icon={previewIcon} />
+            <DetailPanel item={previewItem} listType={listType} hoverText={config.hoverText} />
           </div>
         </div>
       )}
