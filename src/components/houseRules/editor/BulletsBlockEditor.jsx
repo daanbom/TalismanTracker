@@ -75,7 +75,14 @@ export default function BulletsBlockEditor({ block, onChange }) {
 
   if (!editor) return null
 
+  const canIndent = depth < 2
   const canOutdent = depth > 1
+
+  const handleIndent = () => {
+    // Storage supports one nested level for bullets.
+    if (!canIndent) return
+    editor.chain().focus().sinkListItem('listItem').run()
+  }
 
   const handleOutdent = () => {
     // Prevent lifting top-level bullets out of the list structure.
@@ -88,9 +95,10 @@ export default function BulletsBlockEditor({ block, onChange }) {
       <div className="flex flex-wrap items-center gap-1 p-1 border-b border-gold-dim/20 bg-elevated/40">
         <button
           type="button"
+          disabled={!canIndent}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
-          className="px-2 py-1 text-xs font-heading rounded border border-gold-dim/30 text-parchment/70 hover:text-gold-light hover:border-gold-dim/60"
+          onClick={handleIndent}
+          className="px-2 py-1 text-xs font-heading rounded border border-gold-dim/30 text-parchment/70 hover:text-gold-light hover:border-gold-dim/60 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-parchment/70 disabled:hover:border-gold-dim/30"
         >
           Indent
         </button>
@@ -104,7 +112,7 @@ export default function BulletsBlockEditor({ block, onChange }) {
           Outdent
         </button>
         <span className="ml-auto text-[11px] font-heading uppercase tracking-wider text-muted pr-1">
-          Level {Math.max(1, Math.min(depth, 2))}
+          Level {Math.max(1, depth)}
         </span>
       </div>
       <EditorContent

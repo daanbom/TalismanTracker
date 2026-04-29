@@ -70,14 +70,21 @@ function listToRows(list) {
       const text = paragraphToText(paragraph)
       const nestedList = (li.content ?? []).find((n) => n.type === 'bulletList')
       const subrules = nestedList
-        ? (nestedList.content ?? [])
-            .filter((n) => n.type === 'listItem')
-            .map((subLi) => {
-              const subParagraph = (subLi.content ?? []).find((n) => n.type === 'paragraph')
-              return paragraphToText(subParagraph)
-            })
-            .filter((s) => s.length > 0)
+        ? flattenNestedTexts(nestedList)
         : []
       return { text, subrules }
+    })
+}
+
+function flattenNestedTexts(list) {
+  return (list.content ?? [])
+    .filter((n) => n.type === 'listItem')
+    .flatMap((li) => {
+      const paragraph = (li.content ?? []).find((n) => n.type === 'paragraph')
+      const text = paragraphToText(paragraph)
+      const nestedList = (li.content ?? []).find((n) => n.type === 'bulletList')
+      const own = text.length > 0 ? [text] : []
+      const descendants = nestedList ? flattenNestedTexts(nestedList) : []
+      return own.concat(descendants)
     })
 }
