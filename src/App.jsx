@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Outlet, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './context/AuthProvider'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -24,7 +24,9 @@ import Counters from './pages/Counters'
 import HouseRules from './pages/HouseRules'
 import HouseRulesContent from './pages/HouseRulesContent'
 import Rulebooks from './pages/Rulebooks'
+import GroupHouseRules from './pages/GroupHouseRules'
 import Tierlist from './pages/Tierlist'
+import AverageTierlist from './pages/AverageTierlist'
 
 const queryClient = new QueryClient()
 
@@ -62,10 +64,13 @@ export default function App() {
               <Route path="/games/:id" element={<GameDetail />} />
               <Route path="/players" element={<Players />} />
               <Route path="/players/:id/tierlist" element={<Tierlist />} />
+              <Route path="/tierlists/average" element={<AverageTierlist />} />
               <Route path="/stats" element={<Stats />} />
               <Route path="/counters" element={<Counters />} />
               <Route path="/house-rules" element={<HouseRules />} />
-              <Route path="/house-rules/rules" element={<HouseRulesContent />} />
+              <Route path="/house-rules/platform" element={<HouseRulesContent />} />
+              <Route path="/house-rules/group" element={<GroupHouseRules />} />
+              <Route path="/house-rules/rules" element={<Navigate to="/house-rules/platform" replace />} />
               <Route path="/house-rules/rulebooks" element={<Rulebooks />} />
             </Route>
           </Routes>

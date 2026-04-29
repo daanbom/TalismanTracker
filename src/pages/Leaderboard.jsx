@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLeaderboardStats } from '../hooks/useLeaderboardStats'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import ScopeToggle from '../components/ScopeToggle'
+import { PLAYER_COUNT_FILTERS } from '../lib/playerCountFilters'
 
 const TALISMAN_SHOW = new Set(['name', 'games_played', 'wins', 'win_rate'])
 
@@ -35,6 +36,7 @@ function SortIcon({ active, direction }) {
 export default function Leaderboard() {
   const { activeGroupId, activeGroup } = useActiveGroup()
   const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
+  const [playerCountFilter, setPlayerCountFilter] = useState('all')
   const [sortKey, setSortKey] = useState('wins')
   const [sortDir, setSortDir] = useState('desc')
 
@@ -43,8 +45,13 @@ export default function Leaderboard() {
     setScope(activeGroupId ? 'group' : 'global')
   }, [activeGroupId])
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlayerCountFilter('all')
+  }, [scope])
+
   const groupId = scope === 'group' ? activeGroupId : null
-  const { data: rows = [], error, isLoading } = useLeaderboardStats(groupId)
+  const { data: rows = [], error, isLoading } = useLeaderboardStats(groupId, playerCountFilter)
 
   const sorted = [...rows].sort((a, b) => {
     const aVal = a[sortKey]
@@ -71,6 +78,26 @@ export default function Leaderboard() {
         </div>
         <div className="mt-3 flex justify-center">
           <ScopeToggle value={scope} onChange={setScope} groupName={activeGroup?.name ?? null} />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs font-body text-muted uppercase tracking-wider mr-1">Players</span>
+          {PLAYER_COUNT_FILTERS.map((f) => {
+            const active = playerCountFilter === f.key
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setPlayerCountFilter(f.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-body border transition-colors ${
+                  active
+                    ? 'border-gold bg-gold/10 text-gold'
+                    : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+                }`}
+              >
+                {f.label}
+              </button>
+            )
+          })}
         </div>
         <p className="text-muted text-sm font-body mt-3">Click any column to sort.</p>
       </div>

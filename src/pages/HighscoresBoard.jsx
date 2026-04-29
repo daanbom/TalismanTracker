@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useHighscoreRecords } from '../hooks/useHighscoreRecords'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import ScopeToggle from '../components/ScopeToggle'
+import { PLAYER_COUNT_FILTERS } from '../lib/playerCountFilters'
 
 const CATEGORY_ICONS = {
   most_gold: (
@@ -81,14 +82,20 @@ const CATEGORY_ICONS = {
 export default function HighscoresBoard() {
   const { activeGroupId, activeGroup } = useActiveGroup()
   const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
+  const [playerCountFilter, setPlayerCountFilter] = useState('all')
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setScope(activeGroupId ? 'group' : 'global')
   }, [activeGroupId])
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlayerCountFilter('all')
+  }, [scope])
+
   const groupId = scope === 'group' ? activeGroupId : null
-  const { data: records = [], isLoading, error } = useHighscoreRecords(groupId)
+  const { data: records = [], isLoading, error } = useHighscoreRecords(groupId, playerCountFilter)
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8 animate-fade-up text-center">
@@ -98,6 +105,26 @@ export default function HighscoresBoard() {
         </div>
         <div className="mt-3 flex justify-center">
           <ScopeToggle value={scope} onChange={setScope} groupName={activeGroup?.name ?? null} />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <span className="text-xs font-body text-muted uppercase tracking-wider mr-1">Players</span>
+          {PLAYER_COUNT_FILTERS.map((f) => {
+            const active = playerCountFilter === f.key
+            return (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setPlayerCountFilter(f.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-body border transition-colors ${
+                  active
+                    ? 'border-gold bg-gold/10 text-gold'
+                    : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+                }`}
+              >
+                {f.label}
+              </button>
+            )
+          })}
         </div>
         <p className="text-muted text-sm font-body mt-3">
           {scope === 'group' ? 'Per-game records within this group.' : 'All-time per-game records across all sessions.'}

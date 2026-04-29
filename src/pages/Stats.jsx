@@ -5,6 +5,10 @@ import { useCharacters } from '../hooks/useCharacters'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import ScopeToggle from '../components/ScopeToggle'
 import {
+  PLAYER_COUNT_FILTERS,
+  filterGamesByPlayerCount,
+} from '../lib/playerCountFilters'
+import {
   OPTIONAL_EXPANSION_FILTERS,
   filterGamesByOptionalExpansions,
   computeCharacterStats,
@@ -32,7 +36,7 @@ function SortIcon({ active, direction }) {
   )
 }
 
-function useSort(initialKey, initialDir = 'desc') {
+function useSort(initialKey, initialDir = 'desc', tieBreakers = {}) {
   const [sortKey, setSortKey] = useState(initialKey)
   const [sortDir, setSortDir] = useState(initialDir)
   const toggle = (key) => {
@@ -42,8 +46,22 @@ function useSort(initialKey, initialDir = 'desc') {
   const sort = (rows) => [...rows].sort((a, b) => {
     const aVal = a[sortKey]
     const bVal = b[sortKey]
-    if (typeof aVal === 'string') return sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
-    return sortDir === 'asc' ? (aVal ?? 0) - (bVal ?? 0) : (bVal ?? 0) - (aVal ?? 0)
+    const primary = typeof aVal === 'string'
+      ? (sortDir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal))
+      : (sortDir === 'asc' ? (aVal ?? 0) - (bVal ?? 0) : (bVal ?? 0) - (aVal ?? 0))
+    if (primary !== 0) return primary
+
+    const configuredTieBreakers = tieBreakers[sortKey] ?? []
+    for (const rule of configuredTieBreakers) {
+      const aTie = a[rule.key]
+      const bTie = b[rule.key]
+      const tieCompare = typeof aTie === 'string'
+        ? ((rule.dir ?? 'desc') === 'asc' ? (aTie ?? '').localeCompare(bTie ?? '') : (bTie ?? '').localeCompare(aTie ?? ''))
+        : ((rule.dir ?? 'desc') === 'asc' ? (aTie ?? 0) - (bTie ?? 0) : (bTie ?? 0) - (aTie ?? 0))
+      if (tieCompare !== 0) return tieCompare
+    }
+
+    return 0
   })
   return { sortKey, sortDir, toggle, sort }
 }
@@ -94,8 +112,17 @@ const pct = (v) => `${(v * 100).toFixed(1)}%`
 function CharactersTab({ games, allCharacters }) {
   const [expansionFilter, setExpansionFilter] = useState('all')
   const [selectedPlayer, setSelectedPlayer] = useState('')
-  const { sortKey, sortDir, toggle, sort } = useSort('games', 'desc')
-  const playerSort = useSort('games', 'desc')
+  const characterTieBreakers = {
+    character: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    expansion: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    games: [{ key: 'wins', dir: 'desc' }],
+    wins: [{ key: 'games', dir: 'desc' }],
+    winRate: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    deaths: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+    deathRate: [{ key: 'wins', dir: 'desc' }, { key: 'games', dir: 'desc' }],
+  }
+  const { sortKey, sortDir, toggle, sort } = useSort('games', 'desc', characterTieBreakers)
+  const playerSort = useSort('games', 'desc', characterTieBreakers)
 
   const rows = useMemo(
     () => computeCharacterStats(games, allCharacters),
@@ -213,7 +240,8 @@ function EndingsTab({ games }) {
     { key: 'playerWinRate', label: 'Player Win %', align: 'center', format: pct, accent: true },
     { key: 'talismanWinRate', label: 'Talisman Win %', align: 'center', format: pct },
     { key: 'avgDeathsPerGame', label: 'Avg Deaths / Game', align: 'center', format: v => v.toFixed(2) },
-    { key: 'topWinningCharacter', label: 'Top Winner', align: 'left', sortable: false },
+    { key: 'topWinner', label: 'Top Winner', align: 'left', sortable: false },
+    { key: 'topCharacter', label: 'Top Character', align: 'left', sortable: false },
     { key: 'topDeath', label: 'Top Death', align: 'left', sortable: false },
   ]
 
@@ -606,6 +634,7 @@ function DeathsTab({ games }) {
 export default function Stats() {
   const [tab, setTab] = useState('characters')
   const [optionalFilter, setOptionalFilter] = useState('all')
+  const [playerCountFilter, setPlayerCountFilter] = useState('all')
   const { activeGroupId, activeGroup } = useActiveGroup()
   const [scope, setScope] = useState(() => activeGroupId ? 'group' : 'global')
 
@@ -617,6 +646,7 @@ export default function Stats() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOptionalFilter('all')
+    setPlayerCountFilter('all')
   }, [scope])
 
   const groupId = scope === 'group' ? activeGroupId : null
@@ -624,8 +654,11 @@ export default function Stats() {
   const { data: allCharacters = [] } = useCharacters()
 
   const games = useMemo(
-    () => filterGamesByOptionalExpansions(rawGames, optionalFilter),
-    [rawGames, optionalFilter],
+    () => {
+      const byOptionalExpansion = filterGamesByOptionalExpansions(rawGames, optionalFilter)
+      return filterGamesByPlayerCount(byOptionalExpansion, playerCountFilter)
+    },
+    [rawGames, optionalFilter, playerCountFilter],
   )
 
   return (
@@ -666,6 +699,28 @@ export default function Stats() {
         <span className="ml-auto text-xs font-body text-muted">
           {games.length} game{games.length !== 1 ? 's' : ''}
         </span>
+      </div>
+
+      {/* Player-count filter */}
+      <div className="mb-6 flex flex-wrap items-center gap-2 animate-fade-up delay-1">
+        <span className="text-xs font-body text-muted uppercase tracking-wider mr-1">Players</span>
+        {PLAYER_COUNT_FILTERS.map((f) => {
+          const active = playerCountFilter === f.key
+          return (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setPlayerCountFilter(f.key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-body border transition-colors ${
+                active
+                  ? 'border-gold bg-gold/10 text-gold'
+                  : 'border-gold-dim/20 text-muted hover:border-gold-dim/40'
+              }`}
+            >
+              {f.label}
+            </button>
+          )
+        })}
       </div>
 
       {/* Tab nav */}
