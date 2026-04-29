@@ -1,3 +1,4 @@
+import { createElement } from 'react'
 import { Link } from 'react-router-dom'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 
@@ -58,6 +59,7 @@ function BookIcon() {
 }
 
 function Tile({ to, title, desc, Icon, disabled, disabledHint, index }) {
+  const iconNode = createElement(Icon)
   const baseClass =
     `card-ornate group bg-surface border border-gold-dim/15 rounded-xl p-8 sm:p-10 ` +
     `flex flex-col items-center text-center animate-fade-up delay-${index + 2}`
@@ -65,7 +67,7 @@ function Tile({ to, title, desc, Icon, disabled, disabledHint, index }) {
   if (disabled) {
     return (
       <div className={`${baseClass} opacity-50 cursor-not-allowed`} aria-disabled="true">
-        <div className="text-gold/40 mb-5"><Icon /></div>
+        <div className="text-gold/40 mb-5">{iconNode}</div>
         <h2 className="font-heading text-xl sm:text-2xl text-parchment/70 tracking-wide mb-2">
           {title}
         </h2>
@@ -79,9 +81,7 @@ function Tile({ to, title, desc, Icon, disabled, disabledHint, index }) {
       to={to}
       className={`${baseClass} hover:border-gold-dim/40 hover:bg-surface transition-all duration-300 hover:-translate-y-1`}
     >
-      <div className="text-gold/70 group-hover:text-gold transition-colors mb-5">
-        <Icon />
-      </div>
+      <div className="text-gold/70 group-hover:text-gold transition-colors mb-5">{iconNode}</div>
       <h2 className="font-heading text-xl sm:text-2xl text-parchment tracking-wide mb-2">
         {title}
       </h2>
