@@ -2,8 +2,10 @@ import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import { useGroupHouseRules } from '../hooks/useGroupHouseRules'
+import { useSaveGroupHouseRules } from '../hooks/useSaveGroupHouseRules'
 import { useIsActiveGroupAdmin } from '../hooks/useIsActiveGroupAdmin'
 import GroupHouseRulesView from './GroupHouseRulesView'
+import GroupHouseRulesEditor from './GroupHouseRulesEditor'
 
 function NoActiveGroup() {
   return (
@@ -56,7 +58,9 @@ export default function GroupHouseRules() {
   const { activeGroup } = useActiveGroup()
   const isAdmin = useIsActiveGroupAdmin()
   const { data, isLoading } = useGroupHouseRules(activeGroup?.id)
+  const save = useSaveGroupHouseRules(activeGroup?.id)
   const [editing, setEditing] = useState(false)
+  const [staleConflict, setStaleConflict] = useState(false)
 
   if (!activeGroup) return <NoActiveGroup />
   if (isLoading) return null
@@ -64,13 +68,34 @@ export default function GroupHouseRules() {
   const sections = data?.content?.sections ?? []
   const groupName = activeGroup.name
 
-  if (editing) {
-    // Editor mounts in a later task. Until then, fall back to the view.
+  const handleSave = async ({ content, expectedUpdatedAt }) => {
+    setStaleConflict(false)
+    try {
+      const result = await save.mutateAsync({ content, expectedUpdatedAt })
+      if (result.stale) {
+        setStaleConflict(true)
+        return
+      }
+      setEditing(false)
+    } catch (err) {
+      window.alert(`Save failed: ${err.message ?? 'unknown error'}`)
+    }
+  }
+
+  if (editing && isAdmin) {
     return (
-      <GroupHouseRulesView
-        doc={data?.content}
+      <GroupHouseRulesEditor
         groupName={groupName}
-        onEnterEdit={undefined}
+        initialDoc={data?.content ?? { sections: [] }}
+        initialUpdatedAt={data?.updatedAt}
+        onSave={handleSave}
+        onCancel={() => {
+          setStaleConflict(false)
+          setEditing(false)
+        }}
+        saving={save.isPending}
+        staleConflict={staleConflict}
+        onDismissStale={() => setStaleConflict(false)}
       />
     )
   }
