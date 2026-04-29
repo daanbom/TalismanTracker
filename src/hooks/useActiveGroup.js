@@ -44,7 +44,8 @@ export function useActiveGroup() {
   // The stale value can stay in localStorage - it gets overwritten on next pick,
   // and this derivation filters it out on read.
   const isStale = !isLoading && storedId && !groups.find((g) => g.id === storedId)
-  const activeGroupId = isStale ? null : storedId
+  const singleGroupId = !isLoading && groups.length === 1 ? groups[0].id : null
+  const activeGroupId = isStale ? singleGroupId : (storedId ?? singleGroupId)
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? null
 
   const setActiveGroup = (id) => {
