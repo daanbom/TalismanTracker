@@ -117,7 +117,7 @@ export default function BulletsBlockEditor({ block, onChange }) {
       </div>
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none p-3 text-parchment/85 font-body focus:outline-none"
+        className="prose prose-sm max-w-none p-3 text-parchment/85 font-body focus:outline-none [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:my-2 [&_li]:my-1 [&_ul_ul]:list-[square] [&_ul_ul]:pl-5 [&_li::marker]:text-gold-dim/80"
       />
     </div>
   )
