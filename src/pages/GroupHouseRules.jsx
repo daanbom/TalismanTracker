@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { useActiveGroup } from '../hooks/useActiveGroup'
 import { useGroupHouseRules } from '../hooks/useGroupHouseRules'
 import { useSaveGroupHouseRules } from '../hooks/useSaveGroupHouseRules'
 import { useIsActiveGroupAdmin } from '../hooks/useIsActiveGroupAdmin'
 import GroupHouseRulesView from './GroupHouseRulesView'
-import GroupHouseRulesEditor from './GroupHouseRulesEditor'
+
+const GroupHouseRulesEditor = lazy(() => import('./GroupHouseRulesEditor'))
 
 function NoActiveGroup() {
   return (
@@ -84,19 +85,21 @@ export default function GroupHouseRules() {
 
   if (editing && isAdmin) {
     return (
-      <GroupHouseRulesEditor
-        groupName={groupName}
-        initialDoc={data?.content ?? { sections: [] }}
-        initialUpdatedAt={data?.updatedAt}
-        onSave={handleSave}
-        onCancel={() => {
-          setStaleConflict(false)
-          setEditing(false)
-        }}
-        saving={save.isPending}
-        staleConflict={staleConflict}
-        onDismissStale={() => setStaleConflict(false)}
-      />
+      <Suspense fallback={null}>
+        <GroupHouseRulesEditor
+          groupName={groupName}
+          initialDoc={data?.content ?? { sections: [] }}
+          initialUpdatedAt={data?.updatedAt}
+          onSave={handleSave}
+          onCancel={() => {
+            setStaleConflict(false)
+            setEditing(false)
+          }}
+          saving={save.isPending}
+          staleConflict={staleConflict}
+          onDismissStale={() => setStaleConflict(false)}
+        />
+      </Suspense>
     )
   }
 
