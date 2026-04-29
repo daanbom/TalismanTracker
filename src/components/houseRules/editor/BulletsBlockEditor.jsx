@@ -1,6 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { bulletsToTipTapDoc, tipTapDocToBullets } from '../../../lib/houseRules/bullets'
 
 function isNestedListItemSelection(editor) {
@@ -19,6 +19,17 @@ function isNestedListItemSelection(editor) {
     if ($from.node(depth).type.name === 'listItem') return true
   }
   return false
+}
+
+function getListItemDepth(editor) {
+  const { $from } = editor.state.selection
+  let depth = 0
+
+  for (let i = 1; i <= $from.depth; i += 1) {
+    if ($from.node(i).type.name === 'listItem') depth += 1
+  }
+
+  return depth
 }
 
 export default function BulletsBlockEditor({ block, onChange }) {
@@ -41,6 +52,20 @@ export default function BulletsBlockEditor({ block, onChange }) {
     },
   })
 
+  const [depth, setDepth] = useState(1)
+
+  useEffect(() => {
+    if (!editor) return undefined
+    const syncDepth = () => setDepth(getListItemDepth(editor))
+    syncDepth()
+    editor.on('selectionUpdate', syncDepth)
+    editor.on('update', syncDepth)
+    return () => {
+      editor.off('selectionUpdate', syncDepth)
+      editor.off('update', syncDepth)
+    }
+  }, [editor])
+
   // Nesting beyond two levels is dropped silently by `tipTapDocToBullets`,
   // so we do not need a runtime depth cap. The transform is the source of truth.
 
@@ -50,6 +75,8 @@ export default function BulletsBlockEditor({ block, onChange }) {
 
   if (!editor) return null
 
+  const canOutdent = depth > 1
+
   const handleOutdent = () => {
     // Prevent lifting top-level bullets out of the list structure.
     if (!isNestedListItemSelection(editor)) return
@@ -58,7 +85,7 @@ export default function BulletsBlockEditor({ block, onChange }) {
 
   return (
     <div className="border border-gold-dim/20 rounded-md">
-      <div className="flex gap-1 p-1 border-b border-gold-dim/20 bg-elevated/40">
+      <div className="flex flex-wrap items-center gap-1 p-1 border-b border-gold-dim/20 bg-elevated/40">
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
@@ -69,12 +96,16 @@ export default function BulletsBlockEditor({ block, onChange }) {
         </button>
         <button
           type="button"
+          disabled={!canOutdent}
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleOutdent}
-          className="px-2 py-1 text-xs font-heading rounded border border-gold-dim/30 text-parchment/70 hover:text-gold-light hover:border-gold-dim/60"
+          className="px-2 py-1 text-xs font-heading rounded border border-gold-dim/30 text-parchment/70 hover:text-gold-light hover:border-gold-dim/60 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-parchment/70 disabled:hover:border-gold-dim/30"
         >
           Outdent
         </button>
+        <span className="ml-auto text-[11px] font-heading uppercase tracking-wider text-muted pr-1">
+          Level {Math.max(1, Math.min(depth, 2))}
+        </span>
       </div>
       <EditorContent
         editor={editor}
