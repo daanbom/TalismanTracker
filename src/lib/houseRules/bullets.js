@@ -33,8 +33,36 @@ export function bulletsToTipTapDoc(items) {
 // We only honour one level of nesting; deeper nesting is flattened to text on the parent.
 export function tipTapDocToBullets(doc) {
   if (!doc || doc.type !== 'doc') return []
-  const list = (doc.content ?? []).find((n) => n.type === 'bulletList')
-  if (!list) return []
+  const rows = []
+  const content = doc.content ?? []
+
+  content.forEach((node) => {
+    if (node.type === 'bulletList') {
+      rows.push(...listToRows(node))
+      return
+    }
+    if (node.type === 'paragraph') {
+      const text = paragraphToText(node)
+      if (text.length > 0) rows.push({ text, subrules: [] })
+    }
+  })
+
+  return rows.filter((row) => row.text.length > 0 || row.subrules.length > 0)
+}
+
+function textToInline(text) {
+  if (!text) return []
+  return [{ type: 'text', text }]
+}
+
+function paragraphToText(paragraph) {
+  if (!paragraph) return ''
+  return (paragraph.content ?? [])
+    .map((node) => (node.type === 'text' ? node.text : ''))
+    .join('')
+}
+
+function listToRows(list) {
   return (list.content ?? [])
     .filter((n) => n.type === 'listItem')
     .map((li) => {
@@ -52,17 +80,4 @@ export function tipTapDocToBullets(doc) {
         : []
       return { text, subrules }
     })
-    .filter((row) => row.text.length > 0 || row.subrules.length > 0)
-}
-
-function textToInline(text) {
-  if (!text) return []
-  return [{ type: 'text', text }]
-}
-
-function paragraphToText(paragraph) {
-  if (!paragraph) return ''
-  return (paragraph.content ?? [])
-    .map((node) => (node.type === 'text' ? node.text : ''))
-    .join('')
 }

@@ -3,6 +3,24 @@ import StarterKit from '@tiptap/starter-kit'
 import { useEffect } from 'react'
 import { bulletsToTipTapDoc, tipTapDocToBullets } from '../../../lib/houseRules/bullets'
 
+function isNestedListItemSelection(editor) {
+  const { $from } = editor.state.selection
+
+  let currentListItemDepth = -1
+  for (let depth = $from.depth; depth > 0; depth -= 1) {
+    if ($from.node(depth).type.name === 'listItem') {
+      currentListItemDepth = depth
+      break
+    }
+  }
+  if (currentListItemDepth === -1) return false
+
+  for (let depth = currentListItemDepth - 1; depth > 0; depth -= 1) {
+    if ($from.node(depth).type.name === 'listItem') return true
+  }
+  return false
+}
+
 export default function BulletsBlockEditor({ block, onChange }) {
   const editor = useEditor({
     extensions: [
@@ -32,6 +50,12 @@ export default function BulletsBlockEditor({ block, onChange }) {
 
   if (!editor) return null
 
+  const handleOutdent = () => {
+    // Prevent lifting top-level bullets out of the list structure.
+    if (!isNestedListItemSelection(editor)) return
+    editor.chain().focus().liftListItem('listItem').run()
+  }
+
   return (
     <div className="border border-gold-dim/20 rounded-md">
       <div className="flex gap-1 p-1 border-b border-gold-dim/20 bg-elevated/40">
@@ -46,7 +70,7 @@ export default function BulletsBlockEditor({ block, onChange }) {
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+          onClick={handleOutdent}
           className="px-2 py-1 text-xs font-heading rounded border border-gold-dim/30 text-parchment/70 hover:text-gold-light hover:border-gold-dim/60"
         >
           Outdent
