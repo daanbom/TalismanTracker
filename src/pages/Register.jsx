@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import LegalFooter from '../components/LegalFooter'
 
 function normalizeUsername(value) {
   return value.trim().toLowerCase()
@@ -92,8 +93,9 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-deep">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex flex-col bg-deep">
+      <div className="flex-1 flex items-center justify-center px-4 py-10">
+        <div className="max-w-md w-full space-y-8">
         <div className="text-center space-y-2">
           <img src="/icons/talisman-logo.png" alt="" className="w-16 h-16 mx-auto" />
           <h1 className="font-display text-3xl text-gold tracking-wider">Talisman Tracker</h1>
@@ -163,7 +165,9 @@ export default function Register() {
             Sign in
           </Link>
         </p>
+        </div>
       </div>
+      <LegalFooter compact />
     </div>
   )
 }
