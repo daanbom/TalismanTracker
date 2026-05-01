@@ -27,6 +27,7 @@ import Rulebooks from './pages/Rulebooks'
 import GroupHouseRules from './pages/GroupHouseRules'
 import Tierlist from './pages/Tierlist'
 import AverageTierlist from './pages/AverageTierlist'
+import Legal from './pages/Legal'
 
 const queryClient = new QueryClient()
 
@@ -48,6 +49,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/legal" element={<Legal />} />
             <Route element={<ProtectedLayout />}>
               <Route path="/setup" element={<Setup />} />
               <Route path="/setup-username" element={<SetupUsername />} />

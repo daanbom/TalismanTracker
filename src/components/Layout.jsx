@@ -3,7 +3,7 @@ import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import GroupSwitcher from './GroupSwitcher'
 import PendingInvitesBanner from './PendingInvitesBanner'
-import { BUY_ME_A_COFFEE_COPY, BUY_ME_A_COFFEE_URL } from '../lib/supportLinks'
+import LegalFooter from './LegalFooter'
 
 const NAV_LINKS = [
   { to: '/', label: 'Home' },
@@ -146,33 +146,7 @@ export default function Layout({ children }) {
         <PendingInvitesBanner />
         {children}
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-gold-dim/15 bg-deep/50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-muted text-sm font-body">
-              Talisman Tracker — 4th Edition, All Expansions
-            </p>
-            <div className="flex items-center gap-4">
-              <p className="text-muted/50 text-xs font-body">
-                For the fellowship, by the fellowship
-              </p>
-              {BUY_ME_A_COFFEE_URL && (
-                <a
-                  href={BUY_ME_A_COFFEE_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-full border border-gold-dim/20 px-3 py-1.5 text-xs font-heading tracking-wide text-gold/80 transition-colors hover:border-gold-dim/45 hover:text-gold"
-                >
-                  <span aria-hidden>☕</span>
-                  {BUY_ME_A_COFFEE_COPY.footerLabel}
-                </a>
-              )}
-            </div>
-          </div>
-        </div>
-      </footer>
+      <LegalFooter showSupport />
     </div>
   )
 }
