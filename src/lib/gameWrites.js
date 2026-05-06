@@ -1,11 +1,8 @@
-import { supabase } from '../supabaseClient'
-
-export function buildGamePlayerRows(gameId, formState) {
+export function buildGamePlayerRows(formState) {
   return formState.players.map((playerId) => {
     const pd = formState.playerData?.[playerId] ?? {}
     const chars = pd.characters_played ?? []
     return {
-      game_id: gameId,
       player_id: playerId,
       characters_played: chars,
       total_toad_times: Number(pd.total_toad_times ?? 0),
@@ -17,7 +14,7 @@ export function buildGamePlayerRows(gameId, formState) {
 
 const GAME_LEVEL_HIGHSCORES = new Set(['most_denizens_on_spot'])
 
-export function buildHighscoreRows(gameId, formState) {
+export function buildHighscoreRows(formState) {
   const rows = []
   for (const [category, entries] of Object.entries(formState.highscores ?? {})) {
     if (!Array.isArray(entries)) continue
@@ -27,7 +24,6 @@ export function buildHighscoreRows(gameId, formState) {
       if (entry.value === '' || entry.value == null) continue
       if (!isGameLevel && !entry.player_id) continue
       rows.push({
-        game_id: gameId,
         player_id: isGameLevel ? null : entry.player_id,
         category,
         value: Number(entry.value),
@@ -37,14 +33,13 @@ export function buildHighscoreRows(gameId, formState) {
   return rows
 }
 
-export function buildDeathRows(gameId, formState) {
+export function buildDeathRows(formState) {
   const rows = []
   for (const playerId of formState.players ?? []) {
     const deaths = formState.playerData?.[playerId]?.deaths ?? []
     for (const death of deaths) {
       if (!death.death_type_id) continue
       rows.push({
-        game_id: gameId,
         player_id: playerId,
         death_type_id: death.death_type_id,
         character_id: death.character_id,
@@ -55,7 +50,7 @@ export function buildDeathRows(gameId, formState) {
   return rows
 }
 
-export function buildExpansionEventRows(gameId, formState) {
+export function buildExpansionEventRows(formState) {
   const rows = []
   const events = formState.expansionEvents ?? {}
 
@@ -71,7 +66,6 @@ export function buildExpansionEventRows(gameId, formState) {
       if (!path) continue
       const character = (typeof entry === 'object' && entry?.character) || fallbackChar || null
       rows.push({
-        game_id: gameId,
         player_id: playerId,
         expansion: 'woodland',
         event_type: 'path_completed',
@@ -84,7 +78,6 @@ export function buildExpansionEventRows(gameId, formState) {
     if (dungeon?.beaten) {
       const character = dungeon.character || fallbackChar || null
       rows.push({
-        game_id: gameId,
         player_id: playerId,
         expansion: 'dungeon',
         event_type: 'dungeon_beaten',
@@ -97,34 +90,11 @@ export function buildExpansionEventRows(gameId, formState) {
   return rows
 }
 
-export async function insertChildRows(gameId, formState) {
-  const playerRows = buildGamePlayerRows(gameId, formState)
-  const { error: pErr } = await supabase.from('game_players').insert(playerRows)
-  if (pErr) throw pErr
-
-  const highscoreRows = buildHighscoreRows(gameId, formState)
-  if (highscoreRows.length > 0) {
-    const { error: hErr } = await supabase.from('game_highscores').insert(highscoreRows)
-    if (hErr) throw hErr
-  }
-
-  const deathRows = buildDeathRows(gameId, formState)
-  if (deathRows.length > 0) {
-    const { error: dErr } = await supabase.from('game_player_deaths').insert(deathRows)
-    if (dErr) throw dErr
-  }
-
-  const eventRows = buildExpansionEventRows(gameId, formState)
-  if (eventRows.length > 0) {
-    const { error: eErr } = await supabase.from('game_expansion_events').insert(eventRows)
-    if (eErr) throw eErr
-  }
-}
-
-export async function deleteChildRows(gameId) {
-  const tables = ['game_player_deaths', 'game_players', 'game_highscores', 'game_expansion_events']
-  for (const table of tables) {
-    const { error } = await supabase.from(table).delete().eq('game_id', gameId)
-    if (error) throw error
+export function buildGameWritePayload(formState) {
+  return {
+    game_players: buildGamePlayerRows(formState),
+    highscores: buildHighscoreRows(formState),
+    deaths: buildDeathRows(formState),
+    expansion_events: buildExpansionEventRows(formState),
   }
 }

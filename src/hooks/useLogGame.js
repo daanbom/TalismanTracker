@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../supabaseClient'
-import { insertChildRows } from '../lib/gameWrites'
+import { buildGameWritePayload } from '../lib/gameWrites'
 import { useActiveGroup } from './useActiveGroup'
 
 export function useLogGame() {
@@ -13,28 +13,21 @@ export function useLogGame() {
         throw new Error('Select an active group before logging a game.')
       }
 
-      const { data: game, error: gErr } = await supabase
-        .from('games')
-        .insert({
-          title: formState.title.trim(),
-          date: formState.date,
-          ending_id: formState.ending_id,
-          group_id: activeGroupId,
-          notes: formState.notes || null,
-          optional_expansions: formState.optional_expansions ?? [],
-        })
-        .select('id')
-        .single()
-      if (gErr) throw gErr
-
-      try {
-        await insertChildRows(game.id, formState)
-      } catch (err) {
-        await supabase.from('games').delete().eq('id', game.id)
-        throw err
-      }
-
-      return game.id
+      const payload = buildGameWritePayload(formState)
+      const { data, error } = await supabase.rpc('create_game_atomic', {
+        p_group_id: activeGroupId,
+        p_title: formState.title.trim(),
+        p_date: formState.date,
+        p_ending_id: formState.ending_id,
+        p_notes: formState.notes || null,
+        p_optional_expansions: formState.optional_expansions ?? [],
+        p_game_players: payload.game_players,
+        p_highscores: payload.highscores,
+        p_deaths: payload.deaths,
+        p_expansion_events: payload.expansion_events,
+      })
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['games'] })
