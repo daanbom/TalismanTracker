@@ -616,7 +616,7 @@ function DeathsTab({ games }) {
         </section>
       </div>
       <section>
-        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">PVP Kill Leaderboard</h3>
+        <h3 className="font-heading text-lg text-parchment tracking-wide mb-3">Player Kill Leaderboard</h3>
         <StatsTable
           columns={pvpColumns}
           rows={pvpRows}

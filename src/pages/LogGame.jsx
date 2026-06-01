@@ -190,6 +190,10 @@ export default function LogGame({ initialData, isEditing, gameId, canDelete = tr
   }
 
   const pvpDeathTypeId = allDeathTypes.find(dt => dt.name === 'PVP')?.id
+  const playerKillAttributionDeathTypeIds = allDeathTypes
+    .filter(dt => dt.name === 'PVP' || dt.name === 'Spell')
+    .map(dt => dt.id)
+  const canAttributeKiller = (deathTypeId) => playerKillAttributionDeathTypeIds.includes(deathTypeId)
 
   const addDeath = (playerId) => {
     setForm(prev => {
@@ -214,7 +218,7 @@ export default function LogGame({ initialData, isEditing, gameId, canDelete = tr
     setForm(prev => {
       const deaths = [...(prev.playerData[playerId]?.deaths ?? [])]
       deaths[idx] = { ...deaths[idx], [field]: value }
-      if (field === 'death_type_id' && value !== pvpDeathTypeId) {
+      if (field === 'death_type_id' && !canAttributeKiller(value)) {
         deaths[idx].killed_by_player_id = null
       }
       return {
@@ -779,7 +783,7 @@ export default function LogGame({ initialData, isEditing, gameId, canDelete = tr
                                     <option key={dt.id} value={dt.id}>{dt.name}</option>
                                   ))}
                                 </select>
-                                {death.death_type_id === pvpDeathTypeId && (
+                                {canAttributeKiller(death.death_type_id) && (
                                   <select
                                     className="input-field text-sm flex-1 min-w-[120px]"
                                     value={death.killed_by_player_id || ''}
