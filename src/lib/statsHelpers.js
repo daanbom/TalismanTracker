@@ -104,6 +104,7 @@ export function computeLeaderboard(gamePlayers, deathTypesByPlayer = new Map(), 
       for (const [char, gamesCount] of row.character_counts) {
         if (gamesCount < 2) continue
         const charWins = row.character_wins.get(char) ?? 0
+        if (charWins === 0) continue
         const rate = charWins / gamesCount
         if (rate > bestCharWinRate || (rate === bestCharWinRate && gamesCount > bestCharGames)) {
           bestCharacter = char
