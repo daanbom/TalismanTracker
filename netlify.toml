@@ -5,6 +5,13 @@
 [build.environment]
   NODE_VERSION = "20"
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[functions."supabase-keepalive"]
+  schedule = "17 */6 * * *"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
